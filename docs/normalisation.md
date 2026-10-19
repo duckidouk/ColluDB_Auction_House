@@ -130,6 +130,47 @@ AUCTION_NOTIFICATION(Notif_ID, Auction_ID)
 
 Each subtype uses `Notif_ID` as both its primary key and a foreign key to `NOTIFICATIONS`. A notification may appear in at most one target subtype. Joining on `Notif_ID` reconstructs its target without storing redundant auction identifiers.
 
+
+
+```text
+                         BID_NOTIFICATION
+                        /
+NOTIFICATIONS -------- OUTCOME_NOTIFICATION
+                        \
+                         AUCTION_NOTIFICATION
+```
+
+
+Example
+
+An outbid notification would be stored as:
+
+``` text
+NOTIFICATIONS
+Notif_ID  Receiver_ID  Type_ID  Timestamp
+N01       U07          T02      2026-10-19 10:00
+
+BID_NOTIFICATION
+Notif_ID  Bid_ID
+N01       B17
+```
+Joining the two rows using Notif_ID gives the complete notification:
+
+```text
+N01 → receiver U07, type T02, time 10:00, concerning bid B17
+```
+
+If we need its auction, we follow:
+
+```text
+BID_NOTIFICATION.Bid_ID
+        ↓
+BIDS.Bid_ID
+        ↓
+BIDS.Auction_ID
+```
+
+Therefore, Auction_ID does not need to be repeated.
 ## Conclusion
 
 The final logical schema is in 3NF under the confirmed business rules. The unresolved questions in `business-rules.md` must be agreed before the physical SQL schema is created.
