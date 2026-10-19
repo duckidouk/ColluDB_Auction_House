@@ -1,6 +1,6 @@
 # ColluDB Auction House - Relational Schema
 
-This document records the logical relational translation of the current ER diagram. It is the input to normalization and does not, by itself, establish that every relation is in Third Normal Form (3NF).
+This document records the logical relational schema after normalisation to Third Normal Form (3NF) under the confirmed business rules. Unresolved rules may require later revisions.
 
 ## Notation
 
@@ -16,7 +16,6 @@ USER_ACCOUNTS(
     User_ID PK,
     First_Name,
     Last_Name,
-    Role,
     Password,
     Email_Address UQ
 )
@@ -64,10 +63,18 @@ BIDS(
 
 OUTCOME(
     Outcome_ID PK,
-    Buyer_ID FK -> USER_ACCOUNTS.User_ID NULL,
-    Auction_ID FK -> AUCTION.Auction_ID,
-    Winning_Bid_ID FK -> BIDS.Bid_ID NULL,
+    Auction_ID FK -> AUCTION.Auction_ID UQ,
     Type
+)
+
+BID_WIN_OUTCOME(
+    Outcome_ID PK, FK -> OUTCOME.Outcome_ID,
+    Winning_Bid_ID FK -> BIDS.Bid_ID UQ
+)
+
+BUY_NOW_OUTCOME(
+    Outcome_ID PK, FK -> OUTCOME.Outcome_ID,
+    Buyer_ID FK -> USER_ACCOUNTS.User_ID
 )
 ```
 
@@ -107,7 +114,6 @@ ACTIVITY_LOG(
     Activity_ID PK,
     Session_ID FK -> USER_SESSION.Session_ID,
     ActivityType_ID FK -> ACTIVITY_TYPES.ActivityType_ID,
-    User_ID FK -> USER_ACCOUNTS.User_ID,
     Auction_ID FK -> AUCTION.Auction_ID NULL,
     Category_ID FK -> CATEGORIES.Category_ID NULL,
     Search_Query NULL,
@@ -135,10 +141,22 @@ NOTIFICATIONS(
     Notif_ID PK,
     Receiver_ID FK -> USER_ACCOUNTS.User_ID,
     Type_ID FK -> NOTIFICATION_TYPE.Type_ID,
-    Timestamp,
-    Outcome_ID FK -> OUTCOME.Outcome_ID NULL,
-    Bid_ID FK -> BIDS.Bid_ID NULL,
-    Auction_ID FK -> AUCTION.Auction_ID NULL
+    Timestamp
+)
+
+BID_NOTIFICATION(
+    Notif_ID PK, FK -> NOTIFICATIONS.Notif_ID,
+    Bid_ID FK -> BIDS.Bid_ID
+)
+
+OUTCOME_NOTIFICATION(
+    Notif_ID PK, FK -> NOTIFICATIONS.Notif_ID,
+    Outcome_ID FK -> OUTCOME.Outcome_ID
+)
+
+AUCTION_NOTIFICATION(
+    Notif_ID PK, FK -> NOTIFICATIONS.Notif_ID,
+    Auction_ID FK -> AUCTION.Auction_ID
 )
 ```
 
@@ -165,10 +183,7 @@ FEEDBACK(
 )
 ```
 
-## Business rules still to confirm
+## Business rules
 
-1. Whether an unsold item can be relisted in multiple auctions.
-2. Whether one user account can act as both buyer and seller.
-3. Whether `OUTCOME.Buyer_ID` should be retained when `Winning_Bid_ID` already determines the buyer.
-4. Which descriptive values should be controlled by lookup relations rather than unrestricted text.
+Confirmed and unresolved rules are maintained in [`business-rules.md`](business-rules.md).
 

@@ -2,7 +2,7 @@
 
 ColluDB Auction House is a group database project for **COMP0178: Database Fundamentals** at University College London (UCL). The project explores how a relational database can support the main activities of an online auction platform.
 
-The principal aim is to design, normalize, implement, and query a well-structured database. The website will provide a way to demonstrate that database functionality, but visual polish is not the main focus of the project.
+The principal aim is to design, normalise, implement, and query a well-structured database. The website will provide a way to demonstrate that database functionality, but visual polish is not the main focus of the project.
 
 ## Project scope
 
@@ -26,13 +26,12 @@ The project is currently in the **conceptual and logical database-design stage**
 Completed so far:
 
 - an initial UML-style ER diagram;
-- a draft translation of the ER model into relational schemas;
-- a structured record for evaluating the relations against 1NF, 2NF, and 3NF.
+- a translation of the ER model into relational schemas;
+- normalisation of the logical schema to 3NF under the confirmed business rules.
 
 Still to be completed:
 
 - confirmation of the remaining business rules;
-- normalization of each proposed relation;
 - physical SQL design and constraints;
 - database implementation and sample data;
 - backend and frontend development;
@@ -49,13 +48,14 @@ ColluDB_Auction_House/
 ├── diagrams/
 │   └── DBMS ER diagram_V1 (UML notation).svg
 └── docs/
-    ├── normalization.md       # normalization method and evidence
+    ├── business-rules.md      # confirmed and unresolved business rules
+    ├── normalisation.md       # normalisation method and evidence
     ├── relational-schema.md   # logical relational translation
     └── reference/
         └── Project_Introduction.pdf
 ```
 
-The `database/` directory is intentionally empty while the logical schema and normalization decisions are being validated.
+The `database/` directory is intentionally empty until the outstanding business rules are agreed and physical SQL design begins.
 
 ## Design workflow
 
@@ -87,11 +87,11 @@ The final technology choices remain subject to the coursework specification and 
 
 Important decisions still under review include:
 
-- whether an unsold item can be relisted in multiple auctions;
-- how one account can participate as both buyer and seller;
-- whether storing both a winning bid and its buyer in an outcome introduces redundancy;
+- whether each item belongs to one category or several;
 - which statuses and descriptive types should use controlled lookup relations;
-- how optional event-specific information should be represented in notifications and activity records.
+- whether administrative permissions are required;
+- whether an item may appear in several active auctions at once;
+- whether sellers may bid on their own items and whether a minimum bid increment is required.
 
 These decisions must be resolved from explicit business rules before the corresponding relations can be considered final.
 
