@@ -1,0 +1,6 @@
+- A bid is a buy now bid if it's = to the buy now price. No need for a boolean. 
+- Implement a rule that it cannot exceed the buy now price set by the seller 
+- Seller gets notifies only when something is osld or unsold 
+- There's potentially a transitive dependency 
+- If two users bid on the buy_now_price: we pick the earlier timestamp 
+- Reccommendations: If a user bids on an item, and that Item is also bid on by somebody else, than that person's external bids get tracked. /Perhaps check out what Ebay has done
