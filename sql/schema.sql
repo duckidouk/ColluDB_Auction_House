@@ -177,7 +177,7 @@ CREATE TABLE FavouriteSellers (
 -- ---------------------------------------------------------------------
 CREATE TABLE NotificationTypes (
     notificationTypeId INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    name               VARCHAR(50)  NOT NULL UNIQUE,
+    name               VARCHAR(100)  NOT NULL UNIQUE,
     description        VARCHAR(255) NULL,
     isOptional         BOOLEAN      NOT NULL DEFAULT TRUE   -- FALSE = user can't opt out
 );
