@@ -9,7 +9,7 @@ USE auction_db;
 -- ---------------------------------------------------------------------
 CREATE TABLE Roles (
     roleId          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    name            VARCHAR(50)  NOT NULL UNIQUE KEY,
+    name ENUM('buyer','seller','admin') NOT NULL UNIQUE KEY,
     roleDescription VARCHAR(255) NULL
 )
 
@@ -17,7 +17,7 @@ CREATE TABLE UserAccounts (
     userId        INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     firstName     VARCHAR(50)  NOT NULL,
     lastName      VARCHAR(50)  NOT NULL,
-    emailAddress  VARCHAR(255) NOT NULL UNIQUE,
+    emailAddress  VARCHAR(255) NOT NULL UNIQUE KEY,
     passwordHash  VARCHAR(255) NOT NULL,
     roleId        INT UNSIGNED NOT NULL,
     CONSTRAINT fk_user_role FOREIGN KEY (roleId) REFERENCES Roles (roleId)
@@ -43,6 +43,8 @@ CREATE TABLE UserSessions (
     KEY idx_session_user (userId),
     CONSTRAINT fk_session_user FOREIGN KEY (userId) REFERENCES UserAccounts (userId)
         ON DELETE CASCADE
+    CONSTRAINT chk_session_times CHECK (endTime IS NULL OR endTime > startTime)
+
 );
 
 -- ---------------------------------------------------------------------
@@ -50,7 +52,8 @@ CREATE TABLE UserSessions (
 -- ---------------------------------------------------------------------
 CREATE TABLE Categories (
     categoryId INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    name       VARCHAR(50) NOT NULL UNIQUE
+    name       VARCHAR(100) NOT NULL UNIQUE
+    -- TODO: make an enum for this 
 );
 
 CREATE TABLE Items (
@@ -58,7 +61,7 @@ CREATE TABLE Items (
     sellerId      INT UNSIGNED NOT NULL,
     title         VARCHAR(255) NOT NULL,
     description   TEXT         NULL,
-    itemCondition ENUM('new','like_new','good','fair','poor') NOT NULL,
+    itemCondition ENUM('new','like_new','used', 'heavily_used') NOT NULL,
     KEY idx_item_seller (sellerId),
     FULLTEXT KEY ft_item_search (title, description),
     CONSTRAINT fk_item_seller FOREIGN KEY (sellerId) REFERENCES UserAccounts (userId)
@@ -100,7 +103,7 @@ CREATE TABLE Auctions (
     KEY idx_auction_end (endDateTime),
     CONSTRAINT fk_auction_item FOREIGN KEY (itemId) REFERENCES Items (itemId),
     CONSTRAINT chk_auction_dates  CHECK (endDateTime > startDateTime),
-    CONSTRAINT chk_auction_start_price  CHECK (startingPrice >= 0),
+    CONSTRAINT chk_auction_nonneg-price  CHECK (startingPrice >= 0 AND (reservePrice IS NULL OR reservePrice >= 0) AND (buyNowPrice IS NULL OR buyNowPrice >= 0)),
     CONSTRAINT chk_auction_reserve CHECK (reservePrice IS NULL OR reservePrice >= startingPrice),
     CONSTRAINT chk_auction_buynow  CHECK (buyNowPrice  IS NULL OR buyNowPrice  >= startingPrice),
     CONSTRAINT chk_auction_buynow_reserve
@@ -110,12 +113,12 @@ CREATE TABLE Auctions (
 CREATE TABLE Bids (
     bidId        INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
     auctionId    INT UNSIGNED  NOT NULL,
-    buyerId      INT UNSIGNED  NOT NULL,
+    bidderId     INT UNSIGNED  NOT NULL,
     bidAmount    DECIMAL(10,2) NOT NULL,
     bidTimestamp DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     KEY idx_bid_buyer (buyerId),
     CONSTRAINT fk_bid_auction FOREIGN KEY (auctionId) REFERENCES Auctions (auctionId),
-    CONSTRAINT fk_bid_buyer   FOREIGN KEY (buyerId)   REFERENCES UserAccounts (userId),
+    CONSTRAINT fk_bid_bidder   FOREIGN KEY (bidderId) REFERENCES UserAccounts (userId),
     CONSTRAINT chk_bid_amount CHECK (bidAmount > 0)
 );
 
