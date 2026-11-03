@@ -42,31 +42,69 @@ INSERT INTO Categories (categoryId, name) VALUES
 
 -- ---------- Items ----------
 INSERT INTO Items (itemId, sellerId, title, description, itemCondition) VALUES
-(1, 2, 'Vintage Canon AE-1 Film Camera',        '35mm SLR with 50mm f/1.8 lens. Light meter works, minor cosmetic wear.',          'good'),
+(1, 2, 'Vintage Canon AE-1 Film Camera',        '35mm SLR with 50mm f/1.8 lens. Light meter works, minor cosmetic wear.',          'used'),
 (2, 2, 'Sony WH-1000XM4 Headphones',            'Noise cancelling wireless headphones. Used a handful of times, boxed.',          'like_new'),
-(3, 3, 'Penguin Classics Complete Shakespeare', 'Ten-volume paperback set, some shelf wear on spines.',                           'good'),
-(4, 3, 'Mid-Century Teak Sideboard',            '1960s teak sideboard with sliding doors. Minor scratches to top surface.',        'fair'),
+(3, 3, 'Paperback Book Bundle',                 'A mixed set of popular paperback novels with light shelf wear.',                 'used'),
+(4, 3, 'Wooden Dining Chair',                   'Solid wood dining chair in good condition with a few signs of use.',             'used'),
 (5, 4, 'Leather Messenger Bag',                 'Full-grain brown leather, brass fittings, laptop sleeve. Brand new with tags.',   'new'),
 (6, 4, 'Framed Abstract Oil Painting',          'Original oil on canvas, 60x80cm, signed lower right. Black wooden frame.',        'like_new'),
-(7, 2, 'Nintendo Game Boy Color (Teal)',        'Fully working, new screen protector, no battery cover scratches.',                'good'),
-(8, 3, 'Vintage Omega Seamaster Watch',         '1970s automatic, recently serviced. Case shows signs of age.',                    'fair'),
-(9, 4, 'Mechanical Keyboard (Cherry MX Brown)', 'Tenkeyless, PBT keycaps, USB-C. Not listed in an auction yet.',                   'new');
+(7, 2, 'Nintendo Game Boy Color (Teal)',        'Fully working, new screen protector, no battery cover scratches.',                'used'),
+(8, 3, 'Vintage Omega Seamaster Watch',         '1970s automatic, recently serviced. Case shows signs of age.',                    'heavily_used'),
+(9, 4, 'Mechanical Keyboard (Cherry MX Brown)', 'Tenkeyless, PBT keycaps, USB-C. Not listed in an auction yet.',                   'new'),
+(10, 2, 'Nikon FM2 35mm Film Camera',            'Classic manual SLR with a working light meter and Nikkor 50mm lens.',             'used'),
+(11, 2, 'Bose QuietComfort 35 Headphones',        'Wireless noise-cancelling headphones with carrying case and charging cable.',     'used'),
+(12, 3, 'Cookbook Set',                           'Four everyday cookbooks with clean pages and lightly worn covers.',              'used'),
+(13, 3, 'Oak Coffee Table',                      'Solid oak table with a lower shelf and a few small marks from normal use.',      'used'),
+(14, 4, 'Canvas Backpack',                        'Everyday canvas backpack with adjustable shoulder straps and a front pocket.',   'like_new'),
+(15, 4, 'Original Landscape Watercolour',         'Small signed landscape painting in a simple dark wood frame.',                   'like_new'),
+(16, 2, 'Super Nintendo Console Bundle',          'Working console with two controllers and a selection of classic games.',         'used'),
+(17, 3, 'Seiko Automatic Dress Watch',            'Stainless steel automatic watch with a black dial and a recently replaced strap.', 'used'),
+(18, 4, 'Handmade Ceramic Table Lamp',             'Glazed stoneware base with a neutral linen shade; tested and working.',           'like_new'),
+(19, 3, 'Classic Rock Vinyl Record Collection',    'A curated set of twelve LPs with sleeves; condition ranges from good to very good.', 'used'),
+(20, 2, 'Handwoven Wool Area Rug',                'Traditional geometric pattern in blue and red, professionally cleaned.',          'used');
 
 INSERT INTO ItemCategories (categoryId, itemId) VALUES
-(1,1),(5,1), (1,2), (2,3), (4,4),(5,4), (3,5), (6,6), (1,7),(5,7), (3,8),(5,8), (1,9);
+(1,1),(5,1), (1,2), (2,3), (4,4),(5,4), (3,5), (6,6), (1,7),(5,7), (3,8),(5,8), (1,9),
+(1,10),(5,10), (1,11), (2,12), (4,13),(5,13), (3,14), (6,15), (1,16),(5,16),
+(3,17),(5,17), (4,18), (5,19), (4,20);
 
-INSERT INTO ItemImages (imageId, itemId, orderOfImage, imageLocation) VALUES
-(1, 1, 1, 'uploads/items/1_1.jpg'),
-(2, 1, 2, 'uploads/items/1_2.jpg'),
-(3, 2, 1, 'uploads/items/2_1.jpg'),
-(4, 3, 1, 'uploads/items/3_1.jpg'),
-(5, 4, 1, 'uploads/items/4_1.jpg'),
-(6, 5, 1, 'uploads/items/5_1.jpg'),
-(7, 6, 1, 'uploads/items/6_1.jpg'),
-(8, 7, 1, 'uploads/items/7_1.jpg'),
-(9, 8, 1, 'uploads/items/8_1.jpg'),
-(10, 8, 2, 'uploads/items/8_2.jpg'),
-(11, 9, 1, 'uploads/items/9_1.jpg');
+INSERT INTO ItemImages (itemId, orderOfImage, imageLocation) VALUES
+(1, 1, 'uploads/items/1-vintage-canon-ae-1-film-camera-1.jpg'),
+(1, 2, 'uploads/items/1-vintage-canon-ae-1-film-camera-2.jpg'),
+(1, 3, 'uploads/items/1-vintage-canon-ae-1-film-camera-3.jpg'),
+(2, 1, 'uploads/items/2-sony-wh-1000xm4-headphones-1.jpg'),
+(2, 2, 'uploads/items/2-sony-wh-1000xm4-headphones-2.jpg'),
+(3, 1, 'uploads/items/3-paperback-book-bundle-1.jpg'),
+(3, 2, 'uploads/items/3-paperback-book-bundle-2.jpg'),
+(4, 1, 'uploads/items/4-wooden-dining-chair-1.jpg'),
+(4, 2, 'uploads/items/4-wooden-dining-chair-2.jpg'),
+(4, 3, 'uploads/items/4-wooden-dining-chair-3.jpg'),
+(5, 1, 'uploads/items/5-leather-messenger-bag-1.jpg'),
+(5, 2, 'uploads/items/5-leather-messenger-bag-2.jpg'),
+(6, 1, 'uploads/items/6-framed-abstract-oil-painting-1.png'),
+(7, 1, 'uploads/items/7-nintendo-game-boy-color-teal-1.jpg'),
+(7, 2, 'uploads/items/7-nintendo-game-boy-color-teal-2.jpg'),
+(8, 1, 'uploads/items/8-vintage-omega-seamaster-watch-1.jpg'),
+(8, 2, 'uploads/items/8-vintage-omega-seamaster-watch-2.jpg'),
+(9, 1, 'uploads/items/9-mechanical-keyboard-cherry-mx-brown-1.jpg'),
+(9, 2, 'uploads/items/9-mechanical-keyboard-cherry-mx-brown-2.jpg'),
+(10, 1, 'uploads/items/10-nikon-fm2-35mm-film-camera-1.jpg'),
+(10, 2, 'uploads/items/10-nikon-fm2-35mm-film-camera-2.jpg'),
+(10, 3, 'uploads/items/10-nikon-fm2-35mm-film-camera-3.jpg'),
+(11, 1, 'uploads/items/11-bose-quietcomfort-35-headphones-1.jpg'),
+(11, 2, 'uploads/items/11-bose-quietcomfort-35-headphones-2.jpg'),
+(13, 1, 'uploads/items/13-oak-coffee-table-1.jpg'),
+(14, 1, 'uploads/items/14-canvas-backpack-1.jpg'),
+(14, 2, 'uploads/items/14-canvas-backpack-2.jpg'),
+(15, 1, 'uploads/items/15-original-landscape-watercolour-1.jpg'),
+(16, 1, 'uploads/items/16-super-nintendo-console-bundle-1.jpg'),
+(16, 3, 'uploads/items/16-super-nintendo-console-bundle-3.jpg'),
+(17, 1, 'uploads/items/17-seiko-automatic-dress-watch-1.jpg'),
+(17, 2, 'uploads/items/17-seiko-automatic-dress-watch-2.jpg'),
+(18, 2, 'uploads/items/18-handmade-ceramic-table-lamp-2.jpg'),
+(19, 1, 'uploads/items/19-classic-rock-vinyl-record-collection-1.jpg'),
+(19, 2, 'uploads/items/19-classic-rock-vinyl-record-collection-2.jpg'),
+(20, 3, 'uploads/items/20-handwoven-wool-area-rug-3.jpg');
 
 -- ---------- Auctions ----------
 -- 1 ended (sold) | 2,3,6,8 live | 4 ended (reserve not met) | 5 upcoming | 7 ended (no bids)
@@ -81,7 +119,7 @@ INSERT INTO Auctions (auctionId, itemId, startingPrice, reservePrice, buyNowPric
 (8, 8, 250.00, 500.00, 900.00, DATE_SUB(NOW(), INTERVAL 3 DAY),  DATE_ADD(NOW(), INTERVAL 4 DAY));
 
 -- ---------- Bids ----------
-INSERT INTO Bids (bidId, auctionId, buyerId, bidAmount, bidTimestamp) VALUES
+INSERT INTO Bids (bidId, auctionId, bidderId, bidAmount, bidTimestamp) VALUES
 -- auction 1 (won by Liam @ 70, reserve 60 met)
 (1,  1, 5,  25.00, DATE_SUB(NOW(), INTERVAL 9 DAY)),
 (2,  1, 6,  30.00, DATE_SUB(NOW(), INTERVAL 8 DAY)),

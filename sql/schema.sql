@@ -11,7 +11,7 @@ CREATE TABLE Roles (
     roleId          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     name ENUM('buyer','seller','admin') NOT NULL UNIQUE KEY,
     roleDescription VARCHAR(255) NULL
-)
+);
 
 CREATE TABLE UserAccounts (
     userId        INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -42,7 +42,7 @@ CREATE TABLE UserSessions (
     endTime   DATETIME     NULL,                  -- NULL means still active
     KEY idx_session_user (userId),
     CONSTRAINT fk_session_user FOREIGN KEY (userId) REFERENCES UserAccounts (userId)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
     CONSTRAINT chk_session_times CHECK (endTime IS NULL OR endTime > startTime)
 
 );
@@ -103,7 +103,7 @@ CREATE TABLE Auctions (
     KEY idx_auction_end (endDateTime),
     CONSTRAINT fk_auction_item FOREIGN KEY (itemId) REFERENCES Items (itemId),
     CONSTRAINT chk_auction_dates  CHECK (endDateTime > startDateTime),
-    CONSTRAINT chk_auction_nonneg-price  CHECK (startingPrice >= 0 AND (reservePrice IS NULL OR reservePrice >= 0) AND (buyNowPrice IS NULL OR buyNowPrice >= 0)),
+    CONSTRAINT chk_auction_nonneg_price  CHECK (startingPrice >= 0 AND (reservePrice IS NULL OR reservePrice >= 0) AND (buyNowPrice IS NULL OR buyNowPrice >= 0)),
     CONSTRAINT chk_auction_reserve CHECK (reservePrice IS NULL OR reservePrice >= startingPrice),
     CONSTRAINT chk_auction_buynow  CHECK (buyNowPrice  IS NULL OR buyNowPrice  >= startingPrice),
     CONSTRAINT chk_auction_buynow_reserve
@@ -116,7 +116,8 @@ CREATE TABLE Bids (
     bidderId     INT UNSIGNED  NOT NULL,
     bidAmount    DECIMAL(10,2) NOT NULL,
     bidTimestamp DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    KEY idx_bid_buyer (buyerId),
+    KEY idx_bid_bidder (bidderId),
+    UNIQUE KEY uq_bid_id_auction (bidId, auctionId),
     CONSTRAINT fk_bid_auction FOREIGN KEY (auctionId) REFERENCES Auctions (auctionId),
     CONSTRAINT fk_bid_bidder   FOREIGN KEY (bidderId) REFERENCES UserAccounts (userId),
     CONSTRAINT chk_bid_amount CHECK (bidAmount > 0)
@@ -191,7 +192,7 @@ CREATE TABLE UserNotificationPreferences (
         ON DELETE CASCADE,
     CONSTRAINT fk_pref_type FOREIGN KEY (notificationTypeId)
         REFERENCES NotificationTypes (notificationTypeId)
-        ON DELETE CASCADE,
+        ON DELETE CASCADE
 );
 
 CREATE TABLE Notifications (
