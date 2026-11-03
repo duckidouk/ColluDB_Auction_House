@@ -1,0 +1,22 @@
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+config.php
+!**/config.example.php
+
+# PHP dependencies and logs
+/vendor/
+*.log
+error_log
+
+# IDE and editor files
+.idea/
+*.swp
+*.swo
+*~
