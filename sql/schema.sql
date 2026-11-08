@@ -52,8 +52,28 @@ CREATE TABLE UserSessions (
 -- ---------------------------------------------------------------------
 CREATE TABLE Categories (
     categoryId INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    name       VARCHAR(100) NOT NULL UNIQUE
-    -- TODO: make an enum for this 
+    name       ENUM(
+        'AUDIO',
+        'BABIES_AND_KIDS',
+        'BEAUTY_AND_PERSONAL_CARE',
+        'CAR_ACCESSORIES',
+        'CARS',
+        'COMPUTER_AND_TECH',
+        'CLOTHING',
+        'ACCESSORIES_AND_JEWELRY',
+        'FOOD_AND_DRINKS',
+        'FURNITURE_AND_HOME_LIVING',
+        'HEALTH_AND_NUTRITION',
+        'HOBBIES_AND_LIFESTYLE',
+        'MOBILE_PHONES_AND_GADGETS',
+        'PET_SUPPLIES',
+        'SPORTS_EQUIPMENT',
+        'TV_AND_HOME_APPLIANCES',
+        'TOYS_AND_COLLECTIBLES',
+        'OTHER',
+        'BOOKS',
+        'ART'
+    ) NOT NULL UNIQUE
 );
 
 CREATE TABLE Items (
@@ -128,7 +148,13 @@ CREATE TABLE Bids (
 -- ---------------------------------------------------------------------
 CREATE TABLE OutcomeTypes (
     outcomeTypeId INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    name          VARCHAR(50)  NOT NULL UNIQUE,
+    name          ENUM(
+        'ITEM_SOLD_TO_HIGHEST_BIDDER',
+        'ITEM_SOLD_TO_BUY_NOW_BIDDER',
+        'UNSOLD',
+        'CANCELLED_AUCTION',
+        'ADMIN_SHUT_DOWN'
+    ) NOT NULL UNIQUE,
     description   VARCHAR(255) NULL
 );
 
@@ -178,7 +204,15 @@ CREATE TABLE FavouriteSellers (
 -- ---------------------------------------------------------------------
 CREATE TABLE NotificationTypes (
     notificationTypeId INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    name               VARCHAR(100)  NOT NULL UNIQUE,
+    name               ENUM(
+        'OUTBID_BY_ANOTHER_BIDDER',
+        'FOLLOWED_SELLER_NEW_AUCTION',
+        'NEW_AUCTION_BASED_ON_PREFERENCES',
+        'AUCTION_START_REMINDER',
+        'AUCTION_END_REMINDER',
+        'AUCTION_OUTCOME',
+        'NEW_FOLLOWER'
+    ) NOT NULL UNIQUE,
     description        VARCHAR(255) NULL,
     isOptional         BOOLEAN      NOT NULL DEFAULT TRUE   -- FALSE = user can't opt out
 );
@@ -216,7 +250,12 @@ CREATE TABLE Notifications (
 -- ---------------------------------------------------------------------
 CREATE TABLE ActivityTypes (
     activityTypeId INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    name           VARCHAR(50)  NOT NULL UNIQUE,
+    name           ENUM(
+        'AUCTION_SEARCH',
+        'VIEW_AUCTION',
+        'BROWSE_CATEGORY',
+        'ADD_TO_WATCHLIST'
+    ) NOT NULL UNIQUE,
     description    VARCHAR(255) NULL
 );
 

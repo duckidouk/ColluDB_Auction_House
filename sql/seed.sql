@@ -33,12 +33,26 @@ INSERT INTO UserBans (banId, userId, bannedSince, bannedUntil, reason) VALUES
 
 -- ---------- Categories ----------
 INSERT INTO Categories (categoryId, name) VALUES
-(1, 'Electronics'),
-(2, 'Books'),
-(3, 'Fashion & Accessories'),
-(4, 'Home & Garden'),
-(5, 'Collectibles & Vintage'),
-(6, 'Art');
+(1, 'AUDIO'),
+(2, 'BABIES_AND_KIDS'),
+(3, 'BEAUTY_AND_PERSONAL_CARE'),
+(4, 'CAR_ACCESSORIES'),
+(5, 'CARS'),
+(6, 'COMPUTER_AND_TECH'),
+(7, 'CLOTHING'),
+(8, 'ACCESSORIES_AND_JEWELRY'),
+(9, 'FOOD_AND_DRINKS'),
+(10, 'FURNITURE_AND_HOME_LIVING'),
+(11, 'HEALTH_AND_NUTRITION'),
+(12, 'HOBBIES_AND_LIFESTYLE'),
+(13, 'MOBILE_PHONES_AND_GADGETS'),
+(14, 'PET_SUPPLIES'),
+(15, 'SPORTS_EQUIPMENT'),
+(16, 'TV_AND_HOME_APPLIANCES'),
+(17, 'TOYS_AND_COLLECTIBLES'),
+(18, 'OTHER'),
+(19, 'BOOKS'),
+(20, 'ART');
 
 -- ---------- Items ----------
 INSERT INTO Items (itemId, sellerId, title, description, itemCondition) VALUES
@@ -64,9 +78,9 @@ INSERT INTO Items (itemId, sellerId, title, description, itemCondition) VALUES
 (20, 2, 'Handwoven Wool Area Rug',                'Traditional geometric pattern in blue and red, professionally cleaned.',          'used');
 
 INSERT INTO ItemCategories (categoryId, itemId) VALUES
-(1,1),(5,1), (1,2), (2,3), (4,4),(5,4), (3,5), (6,6), (1,7),(5,7), (3,8),(5,8), (1,9),
-(1,10),(5,10), (1,11), (2,12), (4,13),(5,13), (3,14), (6,15), (1,16),(5,16),
-(3,17),(5,17), (4,18), (5,19), (4,20);
+(6,1),(12,1), (1,2),(6,2), (19,3), (10,4), (7,5),(8,5), (20,6), (6,7),(17,7),
+(8,8),(12,8), (6,9), (6,10),(12,10), (1,11),(6,11), (9,12),(19,12), (10,13),
+(7,14),(12,14), (20,15), (6,16),(17,16), (8,17), (10,18), (1,19),(17,19), (10,20);
 
 INSERT INTO ItemImages (itemId, orderOfImage, imageLocation) VALUES
 (1, 1, 'uploads/items/1-vintage-canon-ae-1-film-camera-1.jpg'),
@@ -107,7 +121,7 @@ INSERT INTO ItemImages (itemId, orderOfImage, imageLocation) VALUES
 (20, 3, 'uploads/items/20-handwoven-wool-area-rug-3.jpg');
 
 -- ---------- Auctions ----------
--- 1 ended (sold) | 2,3,6,8 live | 4 ended (reserve not met) | 5 upcoming | 7 ended (no bids)
+-- 1 ended (sold) | 2,3,6,8 live | 4 and 7 ended unsold | 5 upcoming
 INSERT INTO Auctions (auctionId, itemId, startingPrice, reservePrice, buyNowPrice, startDateTime, endDateTime) VALUES
 (1, 1,  20.00,  60.00, NULL,   DATE_SUB(NOW(), INTERVAL 10 DAY), DATE_SUB(NOW(), INTERVAL 3 DAY)),
 (2, 2,  50.00, 120.00, 200.00, DATE_SUB(NOW(), INTERVAL 2 DAY),  DATE_ADD(NOW(), INTERVAL 3 DAY)),
@@ -146,14 +160,15 @@ INSERT INTO Bids (bidId, auctionId, bidderId, bidAmount, bidTimestamp) VALUES
 
 -- ---------- Outcomes ----------
 INSERT INTO OutcomeTypes (outcomeTypeId, name, description) VALUES
-(1, 'sold',             'Highest bid met the reserve price'),
-(2, 'reserve_not_met',  'Auction ended with bids, but none reached the reserve'),
-(3, 'no_bids',          'Auction ended without any bids'),
-(4, 'cancelled',        'Auction cancelled by seller or admin');
+(1, 'ITEM_SOLD_TO_HIGHEST_BIDDER', 'The highest bid met the reserve price'),
+(2, 'ITEM_SOLD_TO_BUY_NOW_BIDDER', 'A bidder purchased the item at its buy-now price'),
+(3, 'UNSOLD',                      'The auction ended without a qualifying sale'),
+(4, 'CANCELLED_AUCTION',           'The seller cancelled the auction'),
+(5, 'ADMIN_SHUT_DOWN',             'An administrator ended the auction');
 
 INSERT INTO Outcomes (outcomeId, auctionId, winningBidId, outcomeTypeId) VALUES
 (1, 1, 4,    1),
-(2, 4, NULL, 2),
+(2, 4, NULL, 3),
 (3, 7, NULL, 3);
 
 -- ---------- Watchlists / favourite sellers ----------
@@ -174,37 +189,36 @@ INSERT INTO FavouriteSellers (followerId, sellerId, followedAt) VALUES
 
 -- ---------- Notification types, preferences, notifications ----------
 INSERT INTO NotificationTypes (notificationTypeId, name, description, isOptional) VALUES
-(1, 'outbid',                'Someone placed a higher bid than yours',            TRUE),
-(2, 'auction_won',           'You won an auction',                                FALSE),
-(3, 'auction_ending_soon',   'A watchlisted auction ends within 24 hours',        TRUE),
-(4, 'new_bid_on_your_item',  'A bid was placed on one of your auctions',          TRUE),
-(5, 'followed_seller_listing','A seller you follow started a new auction',        TRUE);
+(1, 'OUTBID_BY_ANOTHER_BIDDER', 'Someone placed a higher bid than yours', TRUE),
+(2, 'FOLLOWED_SELLER_NEW_AUCTION', 'A seller you follow listed an item for auction', TRUE),
+(3, 'NEW_AUCTION_BASED_ON_PREFERENCES', 'A new auction matches your preferences', TRUE),
+(4, 'AUCTION_START_REMINDER', 'A watched auction is starting soon', TRUE),
+(5, 'AUCTION_END_REMINDER', 'An auction you bid on or watched is ending soon', TRUE),
+(6, 'AUCTION_OUTCOME', 'An auction you bid on or watched has ended', FALSE),
+(7, 'NEW_FOLLOWER', 'Someone started following you', TRUE);
 
 INSERT INTO UserNotificationPreferences (userId, notificationTypeId, isEnabled) VALUES
-(5, 1, TRUE),  (5, 3, TRUE),  (5, 5, TRUE),
-(6, 1, TRUE),  (6, 3, FALSE),
-(7, 1, FALSE), (7, 3, TRUE),
-(2, 4, TRUE),
-(4, 4, TRUE);
+(5, 1, TRUE), (5, 2, TRUE), (5, 3, TRUE), (5, 4, TRUE), (5, 5, TRUE),
+(5, 6, TRUE), (6, 1, TRUE), (6, 4, FALSE), (6, 5, FALSE),
+(6, 6, TRUE), (7, 1, FALSE), (7, 4, TRUE), (7, 5, TRUE),
+(7, 6, TRUE), (2, 6, TRUE), (3, 6, TRUE), (4, 6, TRUE);
 
 INSERT INTO Notifications (notifId, receiverId, notificationTypeId, auctionId, bidId, timestamp) VALUES
-(1, 5, 1, 1, 2,    DATE_SUB(NOW(), INTERVAL 8 DAY)),
-(2, 6, 1, 1, 3,    DATE_SUB(NOW(), INTERVAL 6 DAY)),
-(3, 5, 1, 1, 4,    DATE_SUB(NOW(), INTERVAL 4 DAY)),
-(4, 7, 2, 1, 4,    DATE_SUB(NOW(), INTERVAL 3 DAY)),
-(5, 6, 1, 2, 7,    DATE_SUB(NOW(), INTERVAL 20 HOUR)),
-(6, 5, 1, 2, 8,    DATE_SUB(NOW(), INTERVAL 5 HOUR)),
-(7, 2, 4, 2, 8,    DATE_SUB(NOW(), INTERVAL 5 HOUR)),
-(8, 8, 1, 6, 15,   DATE_SUB(NOW(), INTERVAL 1 DAY)),
-(9, 5, 5, 5, NULL, DATE_SUB(NOW(), INTERVAL 1 HOUR));
+(1, 5, 1, 1, 2, DATE_SUB(NOW(), INTERVAL 8 DAY)),
+(2, 6, 1, 1, 3, DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(3, 5, 1, 1, 4, DATE_SUB(NOW(), INTERVAL 4 DAY)),
+(4, 7, 6, 1, 4, DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(5, 6, 1, 2, 7, DATE_SUB(NOW(), INTERVAL 20 HOUR)),
+(6, 5, 1, 2, 8, DATE_SUB(NOW(), INTERVAL 5 HOUR)),
+(7, 8, 1, 6, 15, DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(8, 5, 2, 5, NULL, DATE_SUB(NOW(), INTERVAL 1 HOUR));
 
 -- ---------- Sessions & activity ----------
 INSERT INTO ActivityTypes (activityTypeId, name, description) VALUES
-(1, 'search',            'User ran a keyword search'),
-(2, 'view_auction',      'User opened an auction page'),
-(3, 'browse_category',   'User browsed a category'),
-(4, 'place_bid',         'User placed a bid'),
-(5, 'add_to_watchlist',  'User added an auction to their watchlist');
+(1, 'AUCTION_SEARCH',   'User ran an auction search, optionally with filters'),
+(2, 'VIEW_AUCTION',      'User opened an auction page'),
+(3, 'BROWSE_CATEGORY',   'User browsed a category'),
+(4, 'ADD_TO_WATCHLIST',  'User added an auction to their watchlist');
 
 INSERT INTO UserSessions (sessionId, userId, startTime, endTime) VALUES
 (1, 5, DATE_SUB(NOW(), INTERVAL 2 DAY),   DATE_SUB(NOW(), INTERVAL 47 HOUR)),
@@ -217,7 +231,6 @@ INSERT INTO ActivityLogs (activityId, sessionId, activityTypeId, auctionId, cate
 (2, 1, 2, 1,    NULL, NULL,             DATE_SUB(NOW(), INTERVAL 47 HOUR)),
 (3, 2, 3, NULL, 1,    NULL,             DATE_SUB(NOW(), INTERVAL 24 HOUR)),
 (4, 2, 2, 2,    NULL, NULL,             DATE_SUB(NOW(), INTERVAL 24 HOUR)),
-(5, 2, 4, 2,    NULL, NULL,             DATE_SUB(NOW(), INTERVAL 5 HOUR)),
 (6, 3, 1, NULL, NULL, 'omega watch',    DATE_SUB(NOW(), INTERVAL 110 MINUTE)),
 (7, 3, 2, 8,    NULL, NULL,             DATE_SUB(NOW(), INTERVAL 100 MINUTE)),
 (8, 4, 3, NULL, 6,    NULL,             DATE_SUB(NOW(), INTERVAL 5 HOUR));

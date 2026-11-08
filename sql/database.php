@@ -1,14 +1,13 @@
 <?php
-// to use in a file:  require_once __DIR__ . '/../includes/database.php';
-// Then use $connection (or the db_connect() helper).
+$config = require __DIR__ . '/../config.php';
 
-// TODO: move credentials into config.php (git-ignored) 
-define('DB_HOST', 'localhost');
-define('DB_USER', 'auction_admin');   // dedicated user, not root (see 01_schema.sql)
-define('DB_PASS', 'change_me');
-define('DB_NAME', 'auction_db');
-
-$connection = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+$connection = mysqli_connect(
+    $config['db_host'],
+    $config['db_user'],
+    $config['db_password'],
+    $config['db_name'],
+    $config['db_port']
+);
 
 if (!$connection) {
     die('Failed to connect to the MySQL server: ' . mysqli_connect_error());
