@@ -4,6 +4,15 @@ require_once __DIR__ . '/../sql/database.php';
 
 $errors = [];
 $item_id = null;
+$saved_image_paths = [];
+$upload_directory = __DIR__ . '/../public/uploads/items';
+$max_image_size = 5 * 1024 * 1024;
+$max_image_pixels = 20000000;
+$allowed_image_types = [
+  'image/jpeg' => 'jpg',
+  'image/png' => 'png',
+  'image/webp' => 'webp',
+];
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   $errors[] = 'Submit the item form to continue.';
@@ -12,8 +21,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   $description = trim((string) ($_POST['description'] ?? ''));
   $condition = (string) ($_POST['condition'] ?? '');
   $category_input = $_POST['category_ids'] ?? [];
+  $image_input = $_FILES['images'] ?? [];
   $valid_conditions = ['new', 'like_new', 'used', 'heavily_used'];
   $category_ids = [];
+  $images_to_upload = [];
 
   if (!preg_match('/^.{1,255}$/us', $title)) {
     $errors[] = 'Enter a title of 1 to 255 characters.';
@@ -24,6 +35,46 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   if (!in_array($condition, $valid_conditions, true)) {
     $errors[] = 'Choose a valid item condition.';
   }
+
+  if ($image_input && !is_array($image_input['error'] ?? null)) {
+    $errors[] = 'The uploaded images could not be processed.';
+  } elseif ($image_input) {
+    for ($order = 1; $order <= 5; $order++) {
+      $error = $image_input['error'][$order] ?? UPLOAD_ERR_NO_FILE;
+      if ($error === UPLOAD_ERR_NO_FILE) {
+        continue;
+      }
+      if ($error !== UPLOAD_ERR_OK) {
+        $errors[] = 'Image ' . $order . ' could not be uploaded.';
+        continue;
+      }
+
+      $temporary_path = $image_input['tmp_name'][$order] ?? '';
+      $file_size = $image_input['size'][$order] ?? 0;
+      if (!is_uploaded_file($temporary_path) || $file_size < 1 || $file_size > $max_image_size) {
+        $errors[] = 'Image ' . $order . ' must be a valid file no larger than 5 MB.';
+        continue;
+      }
+
+      $file_info = new finfo(FILEINFO_MIME_TYPE);
+      $mime_type = $file_info->file($temporary_path);
+      $image_dimensions = getimagesize($temporary_path);
+      if (
+        !isset($allowed_image_types[$mime_type]) ||
+        $image_dimensions === false ||
+        ($image_dimensions[0] * $image_dimensions[1]) > $max_image_pixels
+      ) {
+        $errors[] = 'Image ' . $order . ' must be a valid JPEG, PNG, or WebP image with reasonable dimensions.';
+        continue;
+      }
+
+      $images_to_upload[$order] = [
+        'temporary_path' => $temporary_path,
+        'extension' => $allowed_image_types[$mime_type],
+      ];
+    }
+  }
+
   if (!is_array($category_input)) {
     $errors[] = 'Choose one or more valid categories.';
   } else {
@@ -56,6 +107,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   if (!$errors) {
     $transaction_started = false;
     try {
+      if (!is_dir($upload_directory) || !is_writable($upload_directory)) {
+        throw new RuntimeException('The item image directory is missing or not writable.');
+      }
+
+      foreach ($images_to_upload as $order => $image) {
+        $filename = bin2hex(random_bytes(16)) . '.' . $image['extension'];
+        $destination = $upload_directory . '/' . $filename;
+        if (!move_uploaded_file($image['temporary_path'], $destination)) {
+          throw new RuntimeException('An uploaded image could not be moved into storage.');
+        }
+        $saved_image_paths[$order] = [
+          'filesystem_path' => $destination,
+          'database_path' => 'public/uploads/items/' . $filename,
+        ];
+      }
+
       mysqli_begin_transaction($connection);
       $transaction_started = true;
       $seller_id = 2;
@@ -75,11 +142,27 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         mysqli_stmt_bind_param($category_insert, 'ii', $category_id, $item_id);
         mysqli_stmt_execute($category_insert);
       }
+
+      $image_insert = mysqli_prepare(
+        $connection,
+        'INSERT INTO ItemImages (itemId, orderOfImage, imageLocation) VALUES (?, ?, ?)'
+      );
+      foreach ($saved_image_paths as $order => $image) {
+        $image_location = $image['database_path'];
+        mysqli_stmt_bind_param($image_insert, 'iis', $item_id, $order, $image_location);
+        mysqli_stmt_execute($image_insert);
+      }
+
       mysqli_commit($connection);
       $transaction_started = false;
-    } catch (mysqli_sql_exception $exception) {
+    } catch (Throwable $exception) {
       if ($transaction_started) {
         mysqli_rollback($connection);
+      }
+      foreach ($saved_image_paths as $image) {
+        if (is_file($image['filesystem_path']) && !unlink($image['filesystem_path'])) {
+          error_log('Failed to remove an image after item creation failed: ' . $image['filesystem_path']);
+        }
       }
       error_log('Item creation failed: ' . $exception->getMessage());
       $errors[] = 'The item could not be saved. Please try again.';
