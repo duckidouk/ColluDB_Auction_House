@@ -79,9 +79,14 @@ $selected_item_id = filter_input(INPUT_GET, 'item_id', FILTER_VALIDATE_INT);
         </div>
 
         <div class="form-group">
+          <label for="startDateTime">Start date and time</label>
+          <input type="datetime-local" class="form-control" id="startDateTime" name="start_datetime" required>
+        </div>
+
+        <div class="form-group">
           <label for="endDateTime">End date and time</label>
           <input type="datetime-local" class="form-control" id="endDateTime" name="end_datetime" required>
-          <small class="form-text text-muted">The auction starts immediately and ends at this time.</small>
+          <small class="form-text text-muted">The end date and time must be after the start date and time.</small>
         </div>
 
         <button type="submit" class="btn btn-primary form-control">Create Auction</button>
