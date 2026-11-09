@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   $starting_input = trim((string) ($_POST['starting_price'] ?? ''));
   $reserve_input = trim((string) ($_POST['reserve_price'] ?? ''));
   $buy_now_input = trim((string) ($_POST['buy_now_price'] ?? ''));
+  $start_input = (string) ($_POST['start_datetime'] ?? '');
   $end_input = (string) ($_POST['end_datetime'] ?? '');
   $money_pattern = '/^(?:0|[1-9][0-9]{0,7})(?:\.[0-9]{1,2})?$/D';
   $starting_price = $starting_input === ''
@@ -22,8 +23,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   $buy_now_price = $buy_now_input === ''
     ? null
     : (preg_match($money_pattern, $buy_now_input) ? (float) $buy_now_input : false);
+  $start_date = DateTime::createFromFormat('!Y-m-d\TH:i', $start_input);
+  $start_date_errors = DateTime::getLastErrors();
   $end_date = DateTime::createFromFormat('!Y-m-d\TH:i', $end_input);
-  $date_errors = DateTime::getLastErrors();
+  $end_date_errors = DateTime::getLastErrors();
 
   if ($item_id === false || $item_id === null || $item_id < 1) {
     $errors[] = 'Choose a valid item.';
@@ -44,12 +47,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     $errors[] = 'The buy-now price must be at least the reserve price.';
   }
   if (
+    !$start_date ||
+    $start_date->format('Y-m-d\TH:i') !== $start_input ||
+    ($start_date_errors !== false && ($start_date_errors['warning_count'] > 0 || $start_date_errors['error_count'] > 0))
+  ) {
+    $errors[] = 'Choose a valid start date and time.';
+  }
+  if (
     !$end_date ||
     $end_date->format('Y-m-d\TH:i') !== $end_input ||
-    ($date_errors !== false && ($date_errors['warning_count'] > 0 || $date_errors['error_count'] > 0)) ||
+    ($end_date_errors !== false && ($end_date_errors['warning_count'] > 0 || $end_date_errors['error_count'] > 0)) ||
     $end_date <= new DateTime()
   ) {
     $errors[] = 'Choose a valid end date and time in the future.';
+  }
+  if ($start_date && $end_date && $start_date >= $end_date) {
+    $errors[] = 'The start time must be before the end time.';
   }
 
   if (!$errors) {
@@ -96,16 +109,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
           $auction_insert = mysqli_prepare(
             $connection,
             'INSERT INTO Auctions (itemId, startingPrice, reservePrice, buyNowPrice, startDateTime, endDateTime)
-             VALUES (?, ?, ?, ?, NOW(), ?)'
+             VALUES (?, ?, ?, ?, ?, ?)'
           );
+          $start_datetime = $start_date->format('Y-m-d H:i:s');
           $end_datetime = $end_date->format('Y-m-d H:i:s');
           mysqli_stmt_bind_param(
             $auction_insert,
-            'iddds',
+            'idddss',
             $item_id,
             $starting_price,
             $reserve_price,
             $buy_now_price,
+            $start_datetime,
             $end_datetime
           );
           mysqli_stmt_execute($auction_insert);

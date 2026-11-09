@@ -93,24 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   }
 
   if (!$errors) {
-    $category_check = mysqli_prepare($connection, 'SELECT categoryId FROM Categories WHERE categoryId = ?');
-    foreach ($category_ids as $category_id) {
-      mysqli_stmt_bind_param($category_check, 'i', $category_id);
-      mysqli_stmt_execute($category_check);
-      if (!mysqli_fetch_assoc(mysqli_stmt_get_result($category_check))) {
-        $errors[] = 'One of the selected categories no longer exists. Please choose again.';
-        break;
-      }
-    }
-  }
-
-  if (!$errors) {
     $transaction_started = false;
     try {
-      if (!is_dir($upload_directory) || !is_writable($upload_directory)) {
-        throw new RuntimeException('The item image directory is missing or not writable.');
-      }
-
       foreach ($images_to_upload as $order => $image) {
         $filename = bin2hex(random_bytes(16)) . '.' . $image['extension'];
         $destination = $upload_directory . '/' . $filename;
