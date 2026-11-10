@@ -16,7 +16,7 @@ require_once __DIR__ . '/../sql/database.php';
     die('Invalid auction ID.');
   }
 
-  // Describe the auction information we want MySQL to retrieve
+  // Describe the auction information we want SQL to retrieve
   $listing_query = "
     SELECT a.auctionId, a.itemId, a.startingPrice,
            a.startDateTime, a.endDateTime,
