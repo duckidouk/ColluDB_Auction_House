@@ -23,6 +23,8 @@ CREATE TABLE UserAccounts (
     CONSTRAINT fk_user_role FOREIGN KEY (roleId) REFERENCES Roles (roleId)
 );
 
+-- could we move to having an admin entity, if yes can remove userID for 3nf
+
 CREATE TABLE UserBans (
     banId       INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     userId      INT UNSIGNED NOT NULL,
