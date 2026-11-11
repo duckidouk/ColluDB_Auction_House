@@ -8,28 +8,6 @@
 <?php
   require_once __DIR__ . '/../sql/database.php';
   $categories = mysqli_query($connection, 'SELECT categoryId, name FROM Categories ORDER BY name');
-  $category_labels = [
-    'AUDIO' => 'Audio',
-    'BABIES_AND_KIDS' => 'Babies and Kids',
-    'BEAUTY_AND_PERSONAL_CARE' => 'Beauty and Personal Care',
-    'CAR_ACCESSORIES' => 'Car Accessories',
-    'CARS' => 'Cars',
-    'COMPUTER_AND_TECH' => 'Computer and Tech',
-    'CLOTHING' => 'Clothing',
-    'ACCESSORIES_AND_JEWELRY' => 'Accessories and Jewelry',
-    'FOOD_AND_DRINKS' => 'Food and Drinks',
-    'FURNITURE_AND_HOME_LIVING' => 'Furniture and Home Living',
-    'HEALTH_AND_NUTRITION' => 'Health and Nutrition',
-    'HOBBIES_AND_LIFESTYLE' => 'Hobbies and Lifestyle',
-    'MOBILE_PHONES_AND_GADGETS' => 'Mobile Phones and Gadgets',
-    'PET_SUPPLIES' => 'Pet Supplies',
-    'SPORTS_EQUIPMENT' => 'Sports Equipment',
-    'TV_AND_HOME_APPLIANCES' => 'TV and Home Appliances',
-    'TOYS_AND_COLLECTIBLES' => 'Toys and Collectibles',
-    'OTHER' => 'Other',
-    'BOOKS' => 'Books',
-    'ART' => 'Art',
-  ];
 ?>
   <div class="card">
     <div class="card-body">
@@ -58,7 +36,7 @@
 <?php while ($category = mysqli_fetch_assoc($categories)): ?>
           <div class="form-check">
             <input class="form-check-input" type="checkbox" name="category_ids[]" id="category<?php echo (int) $category['categoryId']; ?>" value="<?php echo (int) $category['categoryId']; ?>">
-            <label class="form-check-label" for="category<?php echo (int) $category['categoryId']; ?>"><?php echo htmlspecialchars($category_labels[$category['name']] ?? $category['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></label>
+            <label class="form-check-label" for="category<?php echo (int) $category['categoryId']; ?>"><?php echo htmlspecialchars(category_display_name($category['name']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></label>
           </div>
 <?php endwhile; ?>
         </fieldset>

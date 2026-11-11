@@ -89,7 +89,8 @@ if ($curr_page > $max_page) {
 $offset = ($curr_page - 1) * $results_per_page;
 
 // ---------- 4. Fetch one page of results ----------
-$sql = "SELECT a.auctionId, i.title, i.description, p.currentPrice, p.numBids, a.endDateTime,
+$sql = "SELECT a.auctionId, i.title, i.description, p.currentPrice, p.numBids,
+               a.startDateTime, a.endDateTime,
                (SELECT GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ', ')
                   FROM ItemCategories ic
                   JOIN Categories c ON c.categoryId = ic.categoryId
@@ -113,10 +114,6 @@ $categories = mysqli_query($connection, 'SELECT categoryId, name FROM Categories
 // Escape anything printed into HTML (stops stored text being run as code).
 function browse_h($value) {
   return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-}
-// 'COMPUTER_AND_TECH' -> 'Computer And Tech'
-function browse_category_label($name) {
-  return ucwords(strtolower(str_replace('_', ' ', $name)));
 }
 ?>
 
@@ -150,7 +147,7 @@ function browse_category_label($name) {
         <select class="form-control" id="cat" name="cat">
           <option value="all"<?php echo $category_id === null ? ' selected' : ''; ?>>All categories</option>
 <?php while ($category = mysqli_fetch_assoc($categories)): ?>
-          <option value="<?php echo (int) $category['categoryId']; ?>"<?php echo $category_id === (int) $category['categoryId'] ? ' selected' : ''; ?>><?php echo browse_h(browse_category_label($category['name'])); ?></option>
+          <option value="<?php echo (int) $category['categoryId']; ?>"<?php echo $category_id === (int) $category['categoryId'] ? ' selected' : ''; ?>><?php echo browse_h(category_display_name($category['name'])); ?></option>
 <?php endwhile; ?>
         </select>
       </div>
@@ -176,50 +173,13 @@ function browse_category_label($name) {
 
 <div class="container mt-5">
 
-<?php if ($num_results == 0): ?>
-  <div class="alert alert-info">No auctions match your search. Try a different keyword or category.</div>
-<?php else: ?>
+<?php if ($num_results > 0): ?>
   <p class="text-muted"><?php echo (int) $num_results; ?> auction<?php echo $num_results == 1 ? '' : 's'; ?> found</p>
-
-<ul class="list-group">
+<?php endif; ?>
 <?php
-  $now = new DateTime();
-  while ($row = mysqli_fetch_assoc($results)):
-    // Shorten long descriptions for the card.
-    $desc = $row['description'] ?? '';
-    if (strlen($desc) > 250) {
-      $desc = substr($desc, 0, 250) . '...';
-    }
-    $bids_word = ((int) $row['numBids'] === 1) ? ' bid' : ' bids';
-    $end_time = new DateTime($row['endDateTime']);
-    if ($now > $end_time) {
-      $time_remaining = 'This auction has ended';
-    } else {
-      $time_remaining = display_time_remaining(date_diff($now, $end_time)) . ' remaining';
-    }
-    $labels = $row['categories'] ? array_map('browse_category_label', explode(', ', $row['categories'])) : [];
+  $auction_list_empty_message = 'No auctions match your search. Try a different keyword or category.';
+  require __DIR__ . '/auction_list.php';
 ?>
-  <li class="list-group-item d-flex justify-content-between">
-    <div class="p-2 mr-5">
-      <h5><a href="listing.php?auction_id=<?php echo (int) $row['auctionId']; ?>"><?php echo browse_h($row['title']); ?></a></h5>
-      <?php echo browse_h($desc); ?>
-<?php if ($labels): ?>
-      <div class="mt-2">
-<?php foreach ($labels as $label): ?>
-        <span class="badge badge-secondary"><?php echo browse_h($label); ?></span>
-<?php endforeach; ?>
-      </div>
-<?php endif; ?>
-    </div>
-    <div class="text-center text-nowrap">
-      <span style="font-size: 1.5em">&pound;<?php echo number_format((float) $row['currentPrice'], 2); ?></span><br/>
-      <?php echo (int) $row['numBids'] . $bids_word; ?><br/>
-      <?php echo browse_h($time_remaining); ?>
-    </div>
-  </li>
-<?php endwhile; ?>
-</ul>
-<?php endif; ?>
 
 <!-- Pagination: keep the current search in every page link, change only page= -->
 <?php if ($max_page > 1): ?>
