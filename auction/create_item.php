@@ -1,9 +1,14 @@
-<?php include_once("header.php")?>
+<?php
+require_once __DIR__ . '/utilities.php';
+$seller_id = current_user_id();
+if ($seller_id === null || ($_SESSION['account_type'] ?? null) !== 'seller') {
+  header('Location: browse.php');
+  exit();
+}
+include_once __DIR__ . '/header.php';
+?>
 <div class="container my-4">
   <h2 class="my-3">Add an item</h2>
-  <div class="alert alert-info">
-    Demo seller mode: this item will be saved under seeded seller account 2.
-  </div>
 
 <?php
   require_once __DIR__ . '/../sql/database.php';

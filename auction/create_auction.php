@@ -1,16 +1,19 @@
-<?php include_once("header.php")?>
+<?php
+require_once __DIR__ . '/utilities.php';
+$seller_id = current_user_id();
+if ($seller_id === null || ($_SESSION['account_type'] ?? null) !== 'seller') {
+  header('Location: browse.php');
+  exit();
+}
+include_once __DIR__ . '/header.php';
+?>
 
 <div class="container">
-<!-- TODO: implement redirect for non seller roles -->
 <div style="max-width: 800px; margin: 10px auto">
   <h2 class="my-3">Create new auction</h2>
-  <div class="alert alert-info">
-    Demo seller mode: choose one of the reusable items belonging to seeded seller account 2.
-  </div>
 
 <?php
 require_once __DIR__ . '/../sql/database.php';
-$seller_id = 2;
 $item_query = mysqli_prepare(
   $connection,
   "SELECT i.itemId, i.title
