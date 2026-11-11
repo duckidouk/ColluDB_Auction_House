@@ -22,9 +22,7 @@ CREATE TABLE UserAccounts (
     roleId        INT UNSIGNED NOT NULL,
     CONSTRAINT fk_user_role FOREIGN KEY (roleId) REFERENCES Roles (roleId)
 );
-
 -- could we move to having an admin entity, if yes can remove userID for 3nf
-
 CREATE TABLE UserBans (
     banId       INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     userId      INT UNSIGNED NOT NULL,
@@ -121,10 +119,12 @@ CREATE TABLE Auctions (
     buyNowPrice   DECIMAL(10,2) NULL,
     startDateTime DATETIME      NOT NULL,
     endDateTime   DATETIME      NOT NULL,
+    originalEndDateTime DATETIME NULL,
     KEY idx_auction_item (itemId),
     KEY idx_auction_end (endDateTime),
     CONSTRAINT fk_auction_item FOREIGN KEY (itemId) REFERENCES Items (itemId),
     CONSTRAINT chk_auction_dates  CHECK (endDateTime > startDateTime),
+    CONSTRAINT chk_auction_orig_end CHECK (originalEndDateTime IS NULL OR originalEndDateTime > endDateTime),
     CONSTRAINT chk_auction_nonneg_price  CHECK (startingPrice >= 0 AND (reservePrice IS NULL OR reservePrice >= 0) AND (buyNowPrice IS NULL OR buyNowPrice >= 0)),
     CONSTRAINT chk_auction_reserve CHECK (reservePrice IS NULL OR reservePrice >= startingPrice),
     CONSTRAINT chk_auction_buynow  CHECK (buyNowPrice  IS NULL OR buyNowPrice  >= startingPrice),
@@ -216,13 +216,13 @@ CREATE TABLE NotificationTypes (
         'NEW_FOLLOWER'
     ) NOT NULL UNIQUE,
     description        VARCHAR(255) NULL,
-    isOptional         BOOLEAN      NOT NULL DEFAULT TRUE   -- FALSE = user can't opt out
+   isOptional         BOOLEAN      NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE UserNotificationPreferences (
     userId             INT UNSIGNED NOT NULL,
     notificationTypeId INT UNSIGNED NOT NULL,
-    isEnabled          BOOLEAN      NOT NULL DEFAULT TRUE,
+    isEnabled          BOOLEAN      NOT NULL DEFAULT TRUE,   -- email on/off; only rows for OPTIONAL types are used
     PRIMARY KEY (userId, notificationTypeId),
     CONSTRAINT fk_pref_user FOREIGN KEY (userId) REFERENCES UserAccounts (userId)
         ON DELETE CASCADE,
@@ -235,16 +235,23 @@ CREATE TABLE Notifications (
     notifId            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     receiverId         INT UNSIGNED NOT NULL,
     notificationTypeId INT UNSIGNED NOT NULL,
-    auctionId          INT UNSIGNED NOT NULL,
+    auctionId          INT UNSIGNED NULL,          -- [CHANGE] NULL allowed: NEW_FOLLOWER is not about an auction
     bidId              INT UNSIGNED NULL,          -- only set for bid-related notifications (e.g. outbid)
-    timestamp          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    relatedUserId      INT UNSIGNED NULL,          -- [CHANGE] the other person (e.g. who followed you)
+    timestamp          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,   -- when the notification was created
+    readAt             DATETIME     NULL,          -- [CHANGE] NULL = unread (drives the bell badge)
+    emailSentAt        DATETIME     NULL,          -- [CHANGE] NULL = email not sent yet; set when the email goes out
     KEY idx_notif_receiver (receiverId, timestamp),
+    KEY idx_notif_unread (receiverId, readAt),
+    KEY idx_notif_email (emailSentAt),
     CONSTRAINT fk_notif_receiver FOREIGN KEY (receiverId) REFERENCES UserAccounts (userId)
         ON DELETE CASCADE,
     CONSTRAINT fk_notif_type FOREIGN KEY (notificationTypeId)
         REFERENCES NotificationTypes (notificationTypeId),
     CONSTRAINT fk_notif_auction FOREIGN KEY (auctionId) REFERENCES Auctions (auctionId),
-    CONSTRAINT fk_notif_bid FOREIGN KEY (bidId) REFERENCES Bids (bidId)
+    CONSTRAINT fk_notif_bid FOREIGN KEY (bidId) REFERENCES Bids (bidId),
+    CONSTRAINT fk_notif_related FOREIGN KEY (relatedUserId) REFERENCES UserAccounts (userId)
+        ON DELETE SET NULL
 );
 
 -- ---------------------------------------------------------------------
