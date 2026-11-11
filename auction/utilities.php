@@ -1,5 +1,37 @@
 <?php
 
+function ensure_session_started(): void {
+  if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+  }
+}
+
+function current_user_id(): ?int {
+  ensure_session_started();
+  return isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
+}
+
+function current_user_session(): ?int {
+  ensure_session_started();
+  return isset($_SESSION['user_session_id']) ? (int) $_SESSION['user_session_id'] : null;
+}
+
+function start_authenticated_session(mysqli $connection, int $userId, string $accountType): void {
+  ensure_session_started();
+  session_regenerate_id(true);
+
+  $statement = mysqli_prepare($connection, 'INSERT INTO UserSessions (userId) VALUES (?)');
+  mysqli_stmt_bind_param($statement, 'i', $userId);
+  mysqli_stmt_execute($statement);
+  $userSessionId = mysqli_insert_id($connection);
+  mysqli_stmt_close($statement);
+
+  $_SESSION['user_id'] = $userId;
+  $_SESSION['user_session_id'] = $userSessionId;
+  $_SESSION['account_type'] = $accountType;
+  unset($_SESSION['demo_user_id']);
+}
+
 // display_time_remaining:
 // Helper function to help figure out what time to display
 function display_time_remaining($interval) {
@@ -21,44 +53,31 @@ function display_time_remaining($interval) {
 
 }
 
-// print_listing_li:
-// This function prints an HTML <li> element containing an auction listing
-function print_listing_li($item_id, $title, $desc, $price, $num_bids, $end_time)
-{
-  // Truncate long descriptions
-  if (strlen($desc) > 250) {
-    $desc_shortened = substr($desc, 0, 250) . '...';
-  }
-  else {
-    $desc_shortened = $desc;
-  }
-  
-  // Fix language of bid vs. bids
-  if ($num_bids == 1) {
-    $bid = ' bid';
-  }
-  else {
-    $bid = ' bids';
-  }
-  
-  // Calculate time to auction end
-  $now = new DateTime();
-  if ($now > $end_time) {
-    $time_remaining = 'This auction has ended';
-  }
-  else {
-    // Get interval:
-    $time_to_end = date_diff($now, $end_time);
-    $time_remaining = display_time_remaining($time_to_end) . ' remaining';
-  }
-  
-  // Print HTML
-  echo('
-    <li class="list-group-item d-flex justify-content-between">
-    <div class="p-2 mr-5"><h5><a href="listing.php?item_id=' . $item_id . '">' . $title . '</a></h5>' . $desc_shortened . '</div>
-    <div class="text-center text-nowrap"><span style="font-size: 1.5em">£' . number_format($price, 2) . '</span><br/>' . $num_bids . $bid . '<br/>' . $time_remaining . '</div>
-  </li>'
-  );
+const CATEGORY_DISPLAY_NAMES = [
+  'AUDIO' => 'Audio',
+  'BABIES_AND_KIDS' => 'Babies and Kids',
+  'BEAUTY_AND_PERSONAL_CARE' => 'Beauty and Personal Care',
+  'CAR_ACCESSORIES' => 'Car Accessories',
+  'CARS' => 'Cars',
+  'COMPUTER_AND_TECH' => 'Computer and Tech',
+  'CLOTHING' => 'Clothing',
+  'ACCESSORIES_AND_JEWELRY' => 'Accessories and Jewelry',
+  'FOOD_AND_DRINKS' => 'Food and Drinks',
+  'FURNITURE_AND_HOME_LIVING' => 'Furniture and Home Living',
+  'HEALTH_AND_NUTRITION' => 'Health and Nutrition',
+  'HOBBIES_AND_LIFESTYLE' => 'Hobbies and Lifestyle',
+  'MOBILE_PHONES_AND_GADGETS' => 'Mobile Phones and Gadgets',
+  'PET_SUPPLIES' => 'Pet Supplies',
+  'SPORTS_EQUIPMENT' => 'Sports Equipment',
+  'TV_AND_HOME_APPLIANCES' => 'TV and Home Appliances',
+  'TOYS_AND_COLLECTIBLES' => 'Toys and Collectibles',
+  'OTHER' => 'Other',
+  'BOOKS' => 'Books',
+  'ART' => 'Art',
+];
+
+function category_display_name(string $name): string {
+  return CATEGORY_DISPLAY_NAMES[$name] ?? ucwords(strtolower(str_replace('_', ' ', $name)));
 }
 
 ?>

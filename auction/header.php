@@ -1,11 +1,7 @@
 <?php
-  // FIXME: At the moment, I've allowed these values to be set manually.
-  // But eventually, with a database, these should be set automatically
-  // ONLY after the user's login credentials have been verified via a 
-  // database query.
-  session_start();
-  $_SESSION['logged_in'] = false;
-  $_SESSION['account_type'] = 'seller';
+  require_once __DIR__ . '/utilities.php';
+  ensure_session_started();
+  $loggedIn = current_user_id() !== null;
 
   // [OUTCOME/NOTIFICATION CHANGE] database connection + notification functions (used by the bell)
   require_once __DIR__ . '/../sql/database.php';
@@ -42,7 +38,7 @@
 <?php
   // Displays either login or logout on the right, depending on user's
   // current status (session).
-  if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] == true) {
+  if ($loggedIn) {
     echo '<a class="nav-link" href="logout.php">Logout</a>';
   }
   else {
@@ -59,7 +55,7 @@
       <a class="nav-link" href="browse.php">Browse</a>
     </li>
 <?php
-  if (isset($_SESSION['account_type']) && $_SESSION['account_type'] == 'buyer') {
+  if ($loggedIn && ($_SESSION['account_type'] ?? null) === 'buyer') {
   echo('
 	<li class="nav-item mx-1">
       <a class="nav-link" href="mybids.php">My Bids</a>
@@ -68,7 +64,7 @@
       <a class="nav-link" href="recommendations.php">Recommended</a>
     </li>');
   }
-  if (isset($_SESSION['account_type']) && $_SESSION['account_type'] == 'seller') {
+  if ($loggedIn && ($_SESSION['account_type'] ?? null) === 'seller') {
   echo('
 	<li class="nav-item mx-1">
       <a class="nav-link" href="mylistings.php">My Listings</a>
@@ -80,6 +76,19 @@
 ?>
   </ul>
 </nav>
+
+<?php
+  if (isset($_SESSION['auth_message']) && is_array($_SESSION['auth_message'])) {
+    $authMessage = $_SESSION['auth_message'];
+    unset($_SESSION['auth_message']);
+    $messageType = in_array($authMessage['type'] ?? '', ['success', 'danger'], true)
+      ? $authMessage['type']
+      : 'info';
+    echo '<div class="container mt-3"><div class="alert alert-' . $messageType . '">'
+      . htmlspecialchars((string) ($authMessage['text'] ?? ''), ENT_QUOTES, 'UTF-8')
+      . '</div></div>';
+  }
+?>
 
 <!-- Login modal -->
 <div class="modal fade" id="loginModal">
@@ -95,12 +104,12 @@
       <div class="modal-body">
         <form method="POST" action="login_result.php">
           <div class="form-group">
-            <label for="email">Email</label>
-            <input type="text" class="form-control" id="email" placeholder="Email">
+            <label for="loginEmail">Email</label>
+            <input type="email" class="form-control" id="loginEmail" name="email" placeholder="Email" required>
           </div>
           <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" class="form-control" id="password" placeholder="Password">
+            <label for="loginPassword">Password</label>
+            <input type="password" class="form-control" id="loginPassword" name="password" placeholder="Password" required>
           </div>
           <button type="submit" class="btn btn-primary form-control">Sign in</button>
         </form>

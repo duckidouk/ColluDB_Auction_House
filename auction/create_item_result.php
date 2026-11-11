@@ -1,5 +1,11 @@
 <?php
-include_once("header.php");
+require_once __DIR__ . '/utilities.php';
+ensure_session_started();
+$seller_id = current_user_id();
+if ($seller_id === null || ($_SESSION['account_type'] ?? null) !== 'seller') {
+  header('Location: browse.php');
+  exit();
+}
 require_once __DIR__ . '/../sql/database.php';
 
 $errors = [];
@@ -109,7 +115,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
       mysqli_begin_transaction($connection);
       $transaction_started = true;
-      $seller_id = 2;
       $item_insert = mysqli_prepare(
         $connection,
         'INSERT INTO Items (sellerId, title, description, itemCondition) VALUES (?, ?, ?, ?)'
@@ -156,6 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 ?>
 
+<?php include_once __DIR__ . '/header.php'; ?>
 <div class="container my-5">
 <?php if ($item_id !== null): ?>
   <div class="alert alert-success">Item saved. You can now set up an auction for it.</div>

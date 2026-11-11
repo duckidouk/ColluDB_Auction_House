@@ -5,6 +5,7 @@
  */
  
 require_once __DIR__ . '/../sql/database.php';  
+require_once __DIR__ . '/utilities.php';
 
 // Functions to Call the SQL queries in a more efficient manner (All rows vs First row vs Value vs to execute an INSERT, DELETE, UPDATE query)
 function db_run(mysqli $db, string $sql, array $params = []) {
@@ -35,19 +36,6 @@ function db_exec(mysqli $db, string $sql, array $params = []): int {
   return $n;
 }
 
-// THIS PART NEEDS TO BE AMENDED ONCE THE LOGIN SECTION HAS BEEN DONE
-// ---------------------------------------------------------------------------
-const DEMO_USER_ID = 5;
-// Set to false when login is finished: then ?as= is ignored and only the real logged-in user counts.
-const ALLOW_DEMO_SWITCH = true;
-function current_user_id(): int {
-  if (session_status() === PHP_SESSION_NONE) { session_start(); }
-  if (ALLOW_DEMO_SWITCH) {
-    if (isset($_GET['as'])) { $_SESSION['demo_user_id'] = (int) $_GET['as']; }   // ?as=N picks a user to test as
-    if (isset($_SESSION['demo_user_id'])) { return (int) $_SESSION['demo_user_id']; }   // the test user beats the login
-  }
-  return (int) ($_SESSION['user_id'] ?? DEMO_USER_ID);                              // otherwise: logged-in user, else user 5
-}
 function user_role(mysqli $db, int $userId): ?string {
   return db_val($db, 'SELECT r.name FROM UserAccounts u JOIN Roles r ON r.roleId = u.roleId WHERE u.userId = ?', [$userId]);
 }

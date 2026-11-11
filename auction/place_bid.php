@@ -1,7 +1,7 @@
 <?php
 
-// Start or continue the user's PHP session
-session_start();
+require_once __DIR__ . '/utilities.php';
+ensure_session_started();
 
 // make database errors throw exceptions that we can catch safely
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
@@ -30,8 +30,10 @@ if ($bid_amount === null || $bid_amount === false || $bid_amount < 1) {
   die('Please provide a valid whole-pound bid amount.');
 }
 
-// TO CHANGE: demo the buyer until the login feature stores real user ID
-$bidder_id = 5;
+$bidder_id = current_user_id();
+if ($bidder_id === null) {
+  die('Please log in to place a bid.');
+}
 
 
 $transaction_started = false;

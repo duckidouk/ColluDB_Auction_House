@@ -1,5 +1,13 @@
 <?php
-include_once("header.php");
+require_once __DIR__ . '/utilities.php';
+ensure_session_started();
+$seller_id = current_user_id();
+if ($seller_id === null || ($_SESSION['account_type'] ?? null) !== 'seller') {
+  header('Location: browse.php');
+  exit();
+}
+require_once __DIR__ . '/../sql/database.php';
+
 $errors = [];
 $auction_id = null;
 $item_id = filter_var($_POST['item_id'] ?? null, FILTER_VALIDATE_INT);
@@ -66,9 +74,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   }
 
   if (!$errors) {
-    require_once __DIR__ . '/../sql/database.php';
-    $seller_id = 2;
-
     try {
       mysqli_begin_transaction($connection);
       $transaction_started = true;
@@ -146,10 +151,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 ?>
 
+<?php include_once __DIR__ . '/header.php'; ?>
 <div class="container my-5">
 <?php if ($auction_id !== null): ?>
   <div class="alert alert-success">Auction successfully created.</div>
-  <a class="btn btn-primary" href="listing.php?item_id=<?php echo (int) $item_id; ?>">View item listing</a>
+  <a class="btn btn-primary" href="listing.php?auction_id=<?php echo (int) $auction_id; ?>">View auction</a>
 <?php else: ?>
   <div class="alert alert-danger">
     <p>The auction was not created:</p>
