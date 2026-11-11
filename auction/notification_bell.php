@@ -6,7 +6,11 @@
  */
 require_once __DIR__ . '/notification_funcs.php';
 
-$bell_user   = current_user_id();
+$bell_user = current_user_id();
+if ($bell_user === null) {
+  return;
+}
+
 $bell_rows   = fetch_notifications($connection, $bell_user, 8);
 $bell_unread = unread_count($connection, $bell_user);
 $bell_role   = user_role($connection, $bell_user);   // admins have no email preferences page

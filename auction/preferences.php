@@ -2,6 +2,7 @@
 
 <?php
   $uid  = current_user_id();
+  if ($uid === null) { ob_end_clean(); header('Location: browse.php'); exit(); }
   $role = user_role($connection, $uid);
   $shown = email_pref_types_for_role($role);          // which switches this role gets to see
 

@@ -1,5 +1,5 @@
 <?php include_once("header.php")?>
-<?php require("utilities.php")?>
+<?php require_once __DIR__ . '/utilities.php'?>
 <?php
 /*
  * browse.php — Capability 3: buyers search for items being auctioned,

@@ -1,5 +1,37 @@
 <?php
 
+function ensure_session_started(): void {
+  if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+  }
+}
+
+function current_user_id(): ?int {
+  ensure_session_started();
+  return isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
+}
+
+function current_user_session(): ?int {
+  ensure_session_started();
+  return isset($_SESSION['user_session_id']) ? (int) $_SESSION['user_session_id'] : null;
+}
+
+function start_authenticated_session(mysqli $connection, int $userId, string $accountType): void {
+  ensure_session_started();
+  session_regenerate_id(true);
+
+  $statement = mysqli_prepare($connection, 'INSERT INTO UserSessions (userId) VALUES (?)');
+  mysqli_stmt_bind_param($statement, 'i', $userId);
+  mysqli_stmt_execute($statement);
+  $userSessionId = mysqli_insert_id($connection);
+  mysqli_stmt_close($statement);
+
+  $_SESSION['user_id'] = $userId;
+  $_SESSION['user_session_id'] = $userSessionId;
+  $_SESSION['account_type'] = $accountType;
+  unset($_SESSION['demo_user_id']);
+}
+
 // display_time_remaining:
 // Helper function to help figure out what time to display
 function display_time_remaining($interval) {

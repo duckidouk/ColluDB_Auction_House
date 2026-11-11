@@ -8,6 +8,10 @@
 require_once __DIR__ . '/notification_funcs.php';
 
 $uid = current_user_id();
+if ($uid === null) {
+  header('Location: browse.php');
+  exit();
+}
 
 // only redirect to our own simple page names, never to another website
 function safe_return(string $r): string {

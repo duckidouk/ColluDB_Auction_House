@@ -1,5 +1,5 @@
 <?php include_once("header.php")?>
-<?php require("utilities.php")?>
+<?php require_once __DIR__ . '/utilities.php'?>
 <?php
 // Duc: Connect to the MySQL database using the shared connection file
 require_once __DIR__ . '/../sql/database.php';

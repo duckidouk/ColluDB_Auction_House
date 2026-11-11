@@ -3,6 +3,10 @@
 require_once __DIR__ . '/outcomes.php';
 
 $userId = current_user_id();
+if ($userId === null) {
+  header('Location: browse.php');
+  exit();
+}
 $id     = (int) ($_POST['auction_id'] ?? 0);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$id) {
