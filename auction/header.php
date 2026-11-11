@@ -6,6 +6,10 @@
   session_start();
   $_SESSION['logged_in'] = false;
   $_SESSION['account_type'] = 'seller';
+
+  // [OUTCOME/NOTIFICATION CHANGE] database connection + notification functions (used by the bell)
+  require_once __DIR__ . '/../sql/database.php';
+  require_once __DIR__ . '/notification_funcs.php';
 ?>
 
 
@@ -31,7 +35,8 @@
 <!-- Navbars -->
 <nav class="navbar navbar-expand-lg navbar-light bg-light mx-2">
   <a class="navbar-brand" href="#">Site Name <!--CHANGEME!--></a>
-  <ul class="navbar-nav ml-auto">
+  <ul class="navbar-nav ml-auto align-items-center">
+<?php include __DIR__ . '/notification_bell.php'; /* [OUTCOME/NOTIFICATION CHANGE] the bell + floating list */ ?>
     <li class="nav-item">
     
 <?php

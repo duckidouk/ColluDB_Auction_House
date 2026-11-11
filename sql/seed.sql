@@ -121,16 +121,30 @@ INSERT INTO ItemImages (itemId, orderOfImage, imageLocation) VALUES
 (20, 3, 'uploads/items/20-handwoven-wool-area-rug-3.jpg');
 
 -- ---------- Auctions ----------
--- 1 ended (sold) | 2,3,6,8 live | 4 and 7 ended unsold | 5 upcoming
-INSERT INTO Auctions (auctionId, itemId, startingPrice, reservePrice, buyNowPrice, startDateTime, endDateTime) VALUES
-(1, 1,  20.00,  60.00, NULL,   DATE_SUB(NOW(), INTERVAL 10 DAY), DATE_SUB(NOW(), INTERVAL 3 DAY)),
-(2, 2,  50.00, 120.00, 200.00, DATE_SUB(NOW(), INTERVAL 2 DAY),  DATE_ADD(NOW(), INTERVAL 3 DAY)),
-(3, 3,  15.00,  NULL,   60.00, DATE_SUB(NOW(), INTERVAL 1 DAY),  DATE_ADD(NOW(), INTERVAL 5 DAY)),
-(4, 4, 100.00, 300.00, NULL,   DATE_SUB(NOW(), INTERVAL 14 DAY), DATE_SUB(NOW(), INTERVAL 7 DAY)),
-(5, 5,  40.00,  NULL,   90.00, DATE_ADD(NOW(), INTERVAL 1 DAY),  DATE_ADD(NOW(), INTERVAL 8 DAY)),
-(6, 6, 200.00, 400.00, NULL,   DATE_SUB(NOW(), INTERVAL 6 DAY),  DATE_ADD(NOW(), INTERVAL 6 HOUR)),
-(7, 7,  25.00,  NULL,   NULL,  DATE_SUB(NOW(), INTERVAL 8 DAY),  DATE_SUB(NOW(), INTERVAL 5 DAY)),
-(8, 8, 250.00, 500.00, 900.00, DATE_SUB(NOW(), INTERVAL 3 DAY),  DATE_ADD(NOW(), INTERVAL 4 DAY));
+-- One scenario per Outcome type (plus live / upcoming auctions):
+--   1  ended, sold to highest bidder   (OutcomeType 1)
+--   4  ended, bids but reserve not met (OutcomeType 3 UNSOLD)
+--   7  ended, no bids                  (OutcomeType 3 UNSOLD)
+--   9  closed early by BUY NOW         (OutcomeType 2)  <- originalEndDateTime is set
+--   10 cancelled by the seller         (OutcomeType 4)
+--   11 shut down by an admin           (OutcomeType 5)
+--   2,3,6,8 live (2,3,8 have a Buy Now price; 6 ends in 6 hours - run cron_close_auctions.php after that)
+--   5  upcoming
+INSERT INTO Auctions (auctionId, itemId, startingPrice, reservePrice, buyNowPrice, startDateTime, endDateTime, originalEndDateTime) VALUES
+(1, 1,  20.00,  60.00, NULL,   DATE_SUB(NOW(), INTERVAL 10 DAY), DATE_SUB(NOW(), INTERVAL 3 DAY), NULL),
+(2, 2,  50.00, 120.00, 200.00, DATE_SUB(NOW(), INTERVAL 2 DAY),  DATE_ADD(NOW(), INTERVAL 3 DAY), NULL),
+(3, 3,  15.00,  NULL,   60.00, DATE_SUB(NOW(), INTERVAL 1 DAY),  DATE_ADD(NOW(), INTERVAL 5 DAY), NULL),
+(4, 4, 100.00, 300.00, NULL,   DATE_SUB(NOW(), INTERVAL 14 DAY), DATE_SUB(NOW(), INTERVAL 7 DAY), NULL),
+(5, 5,  40.00,  NULL,   90.00, DATE_ADD(NOW(), INTERVAL 1 DAY),  DATE_ADD(NOW(), INTERVAL 8 DAY), NULL),
+(6, 6, 200.00, 400.00, NULL,   DATE_SUB(NOW(), INTERVAL 6 DAY),  DATE_ADD(NOW(), INTERVAL 6 HOUR), NULL),
+(7, 7,  25.00,  NULL,   NULL,  DATE_SUB(NOW(), INTERVAL 8 DAY),  DATE_SUB(NOW(), INTERVAL 5 DAY), NULL),
+(8, 8, 250.00, 500.00, 900.00, DATE_SUB(NOW(), INTERVAL 3 DAY),  DATE_ADD(NOW(), INTERVAL 4 DAY), NULL),
+-- 9: Buy Now. Scheduled to end in 2 days, but bought 6 hours ago -> endDateTime = purchase time
+(9, 10, 80.00, 150.00, 400.00, DATE_SUB(NOW(), INTERVAL 4 DAY),  DATE_SUB(NOW(), INTERVAL 6 HOUR), DATE_ADD(NOW(), INTERVAL 2 DAY)),
+-- 10: cancelled by seller 3 (was due to end in 4 days)
+(10, 13, 40.00, NULL,  NULL,   DATE_SUB(NOW(), INTERVAL 3 DAY),  DATE_ADD(NOW(), INTERVAL 4 DAY), NULL),
+-- 11: shut down by an admin (was due to end in 5 days)
+(11, 14, 20.00, NULL,  NULL,   DATE_SUB(NOW(), INTERVAL 2 DAY),  DATE_ADD(NOW(), INTERVAL 5 DAY), NULL);
 
 -- ---------- Bids ----------
 INSERT INTO Bids (bidId, auctionId, bidderId, bidAmount, bidTimestamp) VALUES
@@ -156,7 +170,17 @@ INSERT INTO Bids (bidId, auctionId, bidderId, bidAmount, bidTimestamp) VALUES
 (15, 6, 6, 300.00, DATE_SUB(NOW(), INTERVAL 1 DAY)),
 -- auction 8 (live)
 (16, 8, 7, 260.00, DATE_SUB(NOW(), INTERVAL 2 DAY)),
-(17, 8, 5, 310.00, DATE_SUB(NOW(), INTERVAL 1 DAY));
+(17, 8, 5, 310.00, DATE_SUB(NOW(), INTERVAL 1 DAY)),
+-- auction 9 (Buy Now by Tom @ 400 = the buy-now price, 6 hours ago)
+(18, 9, 6,  90.00, DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(19, 9, 7, 120.00, DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(20, 9, 5, 400.00, DATE_SUB(NOW(), INTERVAL 6 HOUR)),
+-- auction 10 (cancelled by seller)
+(21, 10, 5, 45.00, DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(22, 10, 8, 55.00, DATE_SUB(NOW(), INTERVAL 1 DAY)),
+-- auction 11 (shut down by admin)
+(23, 11, 6, 25.00, DATE_SUB(NOW(), INTERVAL 30 HOUR)),
+(24, 11, 7, 30.00, DATE_SUB(NOW(), INTERVAL 10 HOUR));
 
 -- ---------- Outcomes ----------
 INSERT INTO OutcomeTypes (outcomeTypeId, name, description) VALUES
@@ -169,7 +193,10 @@ INSERT INTO OutcomeTypes (outcomeTypeId, name, description) VALUES
 INSERT INTO Outcomes (outcomeId, auctionId, winningBidId, outcomeTypeId) VALUES
 (1, 1, 4,    1),
 (2, 4, NULL, 3),
-(3, 7, NULL, 3);
+(3, 7, NULL, 3),
+(4, 9, 20,   2),
+(5, 10, NULL, 4),
+(6, 11, NULL, 5);
 
 -- ---------- Watchlists / favourite sellers ----------
 INSERT INTO WatchLists (auctionId, userId, timestamp) VALUES
@@ -188,8 +215,10 @@ INSERT INTO FavouriteSellers (followerId, sellerId, followedAt) VALUES
 (8, 4, DATE_SUB(NOW(), INTERVAL 6 DAY));
 
 -- ---------- Notification types, preferences, notifications ----------
+-- isOptional = FALSE -> MANDATORY email (user cannot opt out): outbid + auction outcome
+-- isOptional = TRUE  -> OPTIONAL email (user can switch off). Bell always shows all of them.
 INSERT INTO NotificationTypes (notificationTypeId, name, description, isOptional) VALUES
-(1, 'OUTBID_BY_ANOTHER_BIDDER', 'Someone placed a higher bid than yours', TRUE),
+(1, 'OUTBID_BY_ANOTHER_BIDDER', 'Someone placed a higher bid than yours', FALSE),
 (2, 'FOLLOWED_SELLER_NEW_AUCTION', 'A seller you follow listed an item for auction', TRUE),
 (3, 'NEW_AUCTION_BASED_ON_PREFERENCES', 'A new auction matches your preferences', TRUE),
 (4, 'AUCTION_START_REMINDER', 'A watched auction is starting soon', TRUE),
@@ -197,21 +226,47 @@ INSERT INTO NotificationTypes (notificationTypeId, name, description, isOptional
 (6, 'AUCTION_OUTCOME', 'An auction you bid on or watched has ended', FALSE),
 (7, 'NEW_FOLLOWER', 'Someone started following you', TRUE);
 
+-- Preference rows exist ONLY for optional types (2,3,4,5,7). Missing row = ON.
 INSERT INTO UserNotificationPreferences (userId, notificationTypeId, isEnabled) VALUES
-(5, 1, TRUE), (5, 2, TRUE), (5, 3, TRUE), (5, 4, TRUE), (5, 5, TRUE),
-(5, 6, TRUE), (6, 1, TRUE), (6, 4, FALSE), (6, 5, FALSE),
-(6, 6, TRUE), (7, 1, FALSE), (7, 4, TRUE), (7, 5, TRUE),
-(7, 6, TRUE), (2, 6, TRUE), (3, 6, TRUE), (4, 6, TRUE);
+(5, 2, TRUE),  (5, 3, TRUE),  (5, 4, TRUE),  (5, 5, TRUE),
+(6, 4, FALSE), (6, 5, FALSE),                       -- Aisha: no reminder emails
+(7, 4, TRUE),  (7, 5, TRUE),
+(2, 7, TRUE),  (3, 7, FALSE);                       -- Marcus: no "new follower" emails
 
-INSERT INTO Notifications (notifId, receiverId, notificationTypeId, auctionId, bidId, timestamp) VALUES
-(1, 5, 1, 1, 2, DATE_SUB(NOW(), INTERVAL 8 DAY)),
-(2, 6, 1, 1, 3, DATE_SUB(NOW(), INTERVAL 6 DAY)),
-(3, 5, 1, 1, 4, DATE_SUB(NOW(), INTERVAL 4 DAY)),
-(4, 7, 6, 1, 4, DATE_SUB(NOW(), INTERVAL 3 DAY)),
-(5, 6, 1, 2, 7, DATE_SUB(NOW(), INTERVAL 20 HOUR)),
-(6, 5, 1, 2, 8, DATE_SUB(NOW(), INTERVAL 5 HOUR)),
-(7, 8, 1, 6, 15, DATE_SUB(NOW(), INTERVAL 1 DAY)),
-(8, 5, 2, 5, NULL, DATE_SUB(NOW(), INTERVAL 1 HOUR));
+-- timestamp = when created | readAt NULL = unread | emailSentAt NULL = email not sent
+-- Emails: mandatory types sent; optional ones only if the user has not switched them off.
+INSERT INTO Notifications (notifId, receiverId, notificationTypeId, auctionId, bidId, relatedUserId, timestamp, readAt, emailSentAt) VALUES
+-- auction 1 (sold to highest bidder Liam): outbids, then outcome to seller + buyer
+(1,  5, 1, 1, 2,  NULL, DATE_SUB(NOW(), INTERVAL 8 DAY),  DATE_SUB(NOW(), INTERVAL 8 DAY),  DATE_SUB(NOW(), INTERVAL 8 DAY)),
+(2,  6, 1, 1, 3,  NULL, DATE_SUB(NOW(), INTERVAL 6 DAY),  DATE_SUB(NOW(), INTERVAL 6 DAY),  DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(3,  5, 1, 1, 4,  NULL, DATE_SUB(NOW(), INTERVAL 4 DAY),  DATE_SUB(NOW(), INTERVAL 4 DAY),  DATE_SUB(NOW(), INTERVAL 4 DAY)),
+(4,  7, 6, 1, 4,  NULL, DATE_SUB(NOW(), INTERVAL 3 DAY),  DATE_SUB(NOW(), INTERVAL 3 DAY),  DATE_SUB(NOW(), INTERVAL 3 DAY)),   -- buyer
+(5,  2, 6, 1, 4,  NULL, DATE_SUB(NOW(), INTERVAL 3 DAY),  DATE_SUB(NOW(), INTERVAL 3 DAY),  DATE_SUB(NOW(), INTERVAL 3 DAY)),   -- seller
+-- auction 2 (live): outbid
+(6,  6, 1, 2, 7,  NULL, DATE_SUB(NOW(), INTERVAL 20 HOUR), NULL,                           DATE_SUB(NOW(), INTERVAL 20 HOUR)),
+(7,  5, 1, 2, 8,  NULL, DATE_SUB(NOW(), INTERVAL 5 HOUR),  NULL,                           DATE_SUB(NOW(), INTERVAL 5 HOUR)),
+-- auction 6 (live): outbid
+(8,  8, 1, 6, 15, NULL, DATE_SUB(NOW(), INTERVAL 1 DAY),   NULL,                           DATE_SUB(NOW(), INTERVAL 1 DAY)),
+-- auction 4 (reserve not met) and 7 (no bids): UNSOLD -> seller only
+(9,  3, 6, 4, NULL, NULL, DATE_SUB(NOW(), INTERVAL 7 DAY), DATE_SUB(NOW(), INTERVAL 7 DAY), DATE_SUB(NOW(), INTERVAL 7 DAY)),
+(10, 2, 6, 7, NULL, NULL, DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY)),
+-- auction 9 (Buy Now by Tom): outbid for Liam when Tom bought, outcome to seller + buyer
+(11, 6, 1, 9, 19, NULL, DATE_SUB(NOW(), INTERVAL 2 DAY),   DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(12, 7, 1, 9, 20, NULL, DATE_SUB(NOW(), INTERVAL 6 HOUR),  NULL,                           DATE_SUB(NOW(), INTERVAL 6 HOUR)),
+(13, 2, 6, 9, 20, NULL, DATE_SUB(NOW(), INTERVAL 6 HOUR),  NULL,                           DATE_SUB(NOW(), INTERVAL 6 HOUR)),   -- seller
+(14, 5, 6, 9, 20, NULL, DATE_SUB(NOW(), INTERVAL 6 HOUR),  NULL,                           DATE_SUB(NOW(), INTERVAL 6 HOUR)),   -- buyer (unread: shows in bell)
+-- auction 10 (cancelled by seller): every bidder
+(15, 5, 6, 10, 21, NULL, DATE_SUB(NOW(), INTERVAL 20 HOUR), NULL,                          DATE_SUB(NOW(), INTERVAL 20 HOUR)),
+(16, 8, 6, 10, 22, NULL, DATE_SUB(NOW(), INTERVAL 20 HOUR), NULL,                          DATE_SUB(NOW(), INTERVAL 20 HOUR)),
+-- auction 11 (admin shut down): seller + every bidder
+(17, 4, 6, 11, NULL, NULL, DATE_SUB(NOW(), INTERVAL 3 HOUR), NULL,                         DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+(18, 6, 6, 11, 23, NULL, DATE_SUB(NOW(), INTERVAL 3 HOUR),  NULL,                          DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+(19, 7, 6, 11, 24, NULL, DATE_SUB(NOW(), INTERVAL 3 HOUR),  NULL,                          DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+-- other (optional) types
+(20, 5, 2, 5, NULL, NULL, DATE_SUB(NOW(), INTERVAL 1 HOUR), NULL,                          DATE_SUB(NOW(), INTERVAL 1 HOUR)),   -- followed seller listed auction 5
+(21, 2, 7, NULL, NULL, 7, DATE_SUB(NOW(), INTERVAL 15 DAY), DATE_SUB(NOW(), INTERVAL 15 DAY), DATE_SUB(NOW(), INTERVAL 15 DAY)),  -- Liam followed Priya
+(22, 3, 7, NULL, NULL, 6, DATE_SUB(NOW(), INTERVAL 9 DAY),  NULL,                          NULL),                                -- Aisha followed Marcus (Marcus switched this email off)
+(23, 6, 5, 6, NULL, NULL, DATE_SUB(NOW(), INTERVAL 1 HOUR), NULL,                          NULL);                                -- end reminder; Aisha switched reminder emails off -> no email
 
 -- ---------- Sessions & activity ----------
 INSERT INTO ActivityTypes (activityTypeId, name, description) VALUES
