@@ -84,10 +84,14 @@ if (!$statuses) {
 // Whitelist: form value => fixed ORDER BY text. auctionId is a tie-breaker so
 // the order is deterministic and pagination never repeats or skips a row.
 // 'date' puts live auctions first (soonest ending on top), ended ones after.
+// 'status' groups Live, then Scheduled, then Ended (built from the same rules
+// as the status filter above), cheapest first within each group.
 $sort_options = [
   'pricelow'  => 'p.currentPrice ASC, a.auctionId ASC',
   'pricehigh' => 'p.currentPrice DESC, a.auctionId ASC',
   'date'      => '(a.endDateTime < NOW()) ASC, a.endDateTime ASC, a.auctionId ASC',
+  'status'    => "CASE WHEN {$status_sql['live']} THEN 0 WHEN {$status_sql['scheduled']} THEN 1 ELSE 2 END ASC,
+                  p.currentPrice ASC, a.auctionId ASC",
 ];
 $ordering = $_GET['order_by'] ?? 'pricelow';
 if (!array_key_exists($ordering, $sort_options)) {
@@ -288,6 +292,7 @@ function browse_h($value) {
           <option value="pricelow"<?php echo $ordering === 'pricelow' ? ' selected' : ''; ?>>Price (low to high)</option>
           <option value="pricehigh"<?php echo $ordering === 'pricehigh' ? ' selected' : ''; ?>>Price (high to low)</option>
           <option value="date"<?php echo $ordering === 'date' ? ' selected' : ''; ?>>Soonest expiry</option>
+          <option value="status"<?php echo $ordering === 'status' ? ' selected' : ''; ?>>Status (live first)</option>
         </select>
       </div>
     </div>
