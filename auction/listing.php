@@ -21,10 +21,13 @@ require_once __DIR__ . '/../sql/database.php';
     SELECT a.auctionId, a.itemId, a.startingPrice,
            a.startDateTime, a.endDateTime,
            i.title, i.description, i.sellerId,
-           p.currentPrice, p.numBids
+           p.currentPrice, p.numBids,
+           a.originalEndDateTime, o.outcomeId, ot.name AS outcomeType
     FROM Auctions a
     JOIN Items i ON i.itemId = a.itemId
     JOIN AuctionCurrentPrice p ON p.auctionId = a.auctionId
+    LEFT JOIN Outcomes o ON o.auctionId = a.auctionId
+    LEFT JOIN OutcomeTypes ot ON ot.outcomeTypeId = o.outcomeTypeId
     WHERE a.auctionId = ?
   ";
 
@@ -97,6 +100,22 @@ require_once __DIR__ . '/../sql/database.php';
   //       For now, this is hardcoded.
   $has_session = true;
   $watching = false;
+
+  // Used only to decide whether to show the Cancel / Shut down buttons below.
+  $viewer_id      = current_user_id();
+  $viewer_role    = $viewer_id === null ? null : user_role($connection, $viewer_id);   // null = logged out
+  $already_closed = $listing['outcomeId'] !== null;   // the auction has a result (sold, cancelled, shut down...)
+
+  // [OUTCOME CHANGE] Why did it close early? Label + colour for the badge shown next to the end time.
+  $early_reasons = [
+    'ITEM_SOLD_TO_BUY_NOW_BIDDER' => ['Buy Now purchase',     'info'],
+    'CANCELLED_AUCTION'           => ['Cancelled by seller',  'warning'],
+    'ADMIN_SHUT_DOWN'             => ['Shut down by admin',   'danger'],
+  ];
+  $early_reason = $early_reasons[$listing['outcomeType'] ?? ''] ?? null;   // null = ended normally
+  $scheduled_end = $listing['originalEndDateTime'] !== null ? new DateTime($listing['originalEndDateTime']) : null;
+  $can_cancel     = !$already_closed && $viewer_id !== null && ((int) $listing['sellerId'] === $viewer_id);   // the seller of THIS auction
+  $can_shut_down  = !$already_closed && ($viewer_role === 'admin');                    // any admin
 ?>
 
 
@@ -135,9 +154,21 @@ require_once __DIR__ . '/../sql/database.php';
   <div class="col-sm-4"> <!-- Right col with bidding info -->
 
     <p>
-<?php if ($now >= $end_time): ?>
+<?php if ($now >= $end_time || $already_closed): /* [OUTCOME CHANGE] closed: ended on time, or closed early */ ?>
+<?php if ($scheduled_end !== null): /* closed early while running: old end crossed out, new end shown */ ?>
+     <del class="text-muted"><?php echo date_format($scheduled_end, 'j M H:i'); ?></del>
+     <?php echo date_format($end_time, 'j M H:i'); ?>
+     <small class="text-muted">(closed early)</small>
+<?php elseif ($already_closed && $now < $end_time): /* closed before it started, so the dates were left alone */ ?>
+     Closed before its scheduled end of <?php echo date_format($end_time, 'j M H:i'); ?>
+<?php else: ?>
      This auction ended <?php echo(date_format($end_time, 'j M H:i')) ?>
+<?php endif; ?>
+<?php if ($early_reason): ?>
+     <br><span class="badge badge-<?php echo $early_reason[1]; ?> mt-1"><?php echo $early_reason[0]; ?></span>
+<?php endif; ?>
      <!-- TODO: Print the result of the auction here? -->
+     </p>
 <?php else: ?>
      Auction ends <?php echo(date_format($end_time, 'j M H:i') . $time_remaining) ?></p>
     <p class="lead">Current bid: £<?php echo(number_format($current_price, 2)) ?></p>
@@ -167,6 +198,22 @@ require_once __DIR__ . '/../sql/database.php';
 
       <button type="submit" class="btn btn-primary form-control">Place bid</button>
     </form>
+
+<?php if ($can_cancel): /* [OUTCOME CHANGE] seller cancels their own auction */ ?>
+    <form method="POST" action="cancel_auction.php" class="mt-3"
+          onsubmit="return confirm('Cancel this auction? Every bidder will be notified and their bids will not be taken.');">
+      <input type="hidden" name="auction_id" value="<?php echo (int) $auction_id; ?>">
+      <button type="submit" class="btn btn-outline-danger form-control">Cancel this auction</button>
+    </form>
+<?php endif; ?>
+
+<?php if ($can_shut_down): /* [OUTCOME CHANGE] admin shuts down any auction */ ?>
+    <form method="POST" action="admin_shutdown.php" class="mt-3"
+          onsubmit="return confirm('Shut down this auction? The seller and every bidder will be notified.');">
+      <input type="hidden" name="auction_id" value="<?php echo (int) $auction_id; ?>">
+      <button type="submit" class="btn btn-danger form-control">Shut down this auction (admin)</button>
+    </form>
+<?php endif; ?>
 <?php endif ?>
 
 

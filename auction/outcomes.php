@@ -141,6 +141,16 @@ function top_bid(mysqli $db, int $auctionId): ?array {
                        ORDER BY bidAmount DESC, bidTimestamp ASC, bidId ASC LIMIT 1', [$auctionId]);
 }
 
+// CLOSING EARLY: remember the end time the seller had set, and make the real end time "now".
+// (Used by Buy Now, seller cancel and admin shut down. The listing page then shows the old end
+//  crossed out and the new one.) Only for an auction that is running right now: one that has not
+//  started yet, or has already passed its end, keeps its dates (the database requires start < end,
+//  and original end > end).
+function close_early(mysqli $db, int $auctionId): void {
+  db_exec($db, 'UPDATE Auctions SET originalEndDateTime = endDateTime, endDateTime = NOW()
+                 WHERE auctionId = ? AND startDateTime < NOW() AND endDateTime > NOW()', [$auctionId]);
+}
+
 // BUY NOW (Outcome = 2). Only called from place_bid.php, AFTER it has checked the buyer, the auction and the bid.
 // (The 'Buy now' button just submits a bid at the Buy Now price to place_bid.php, so there is one door in.)
 function execute_buy_now(mysqli $db, array $a, int $buyerId): array {
@@ -152,7 +162,7 @@ function execute_buy_now(mysqli $db, array $a, int $buyerId): array {
 
   record_outcome($db, $a, OUT_BUY_NOW, $bidId);
 
-  db_exec($db, 'UPDATE Auctions SET originalEndDateTime = endDateTime, endDateTime = NOW() WHERE auctionId = ?', [$auctionId]);
+  close_early($db, $auctionId);
 
   return ['ok' => true, 'message' => 'You bought "' . $a['title'] . '" for £' . number_format((float) $a['buyNowPrice'], 2) . '.'];
 }
@@ -180,6 +190,7 @@ function cancel_auction_by_seller(mysqli $db, int $auctionId, int $sellerId): ar
                                                    return fail($db, 'This auction has already ended.');
 
     record_outcome($db, $a, OUT_CANCELLED, null);
+    close_early($db, $auctionId);
     $db->commit();
     return ['ok' => true, 'message' => 'Auction cancelled. Bidders have been notified.'];
   } catch (Throwable $e) { $db->rollback(); throw $e; }
@@ -196,6 +207,7 @@ function admin_shut_down_auction(mysqli $db, int $auctionId, int $adminId): arra
     if (outcome_exists($db, $auctionId))      return fail($db, 'This auction is already closed.');
 
     record_outcome($db, $a, OUT_ADMIN, null);
+    close_early($db, $auctionId);
     $db->commit();
     return ['ok' => true, 'message' => 'Auction shut down. Seller and bidders have been notified.'];
   } catch (Throwable $e) { $db->rollback(); throw $e; }
