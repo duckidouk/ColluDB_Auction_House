@@ -3,7 +3,7 @@
 <?php
 /*
  * browse.php — Capability 3: buyers search for items being auctioned,
- * filter by category, and re-arrange (sort) the listings.
+ * filter by category and price range, and re-arrange (sort) the listings.
  *
  * Flow: 1) read + validate the URL inputs, 2) build the WHERE clause from the
  * filters actually set, 3) count matches for pagination, 4) fetch one page.
@@ -19,6 +19,22 @@ $keyword = trim($_GET['keyword'] ?? '');
 $category_id = filter_var($_GET['cat'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 if ($category_id === false) {
   $category_id = null;
+}
+
+// Price range on the CURRENT price (highest bid, else starting price), in £.
+// Both ends are optional and inclusive. Each must be a number >= 0; blank or
+// invalid (text, negative) means that end is ignored, like 'all' for cat.
+$min_price = filter_var($_GET['min_price'] ?? '', FILTER_VALIDATE_FLOAT, ['options' => ['min_range' => 0]]);
+if ($min_price === false) {
+  $min_price = null;
+}
+$max_price = filter_var($_GET['max_price'] ?? '', FILTER_VALIDATE_FLOAT, ['options' => ['min_range' => 0]]);
+if ($max_price === false) {
+  $max_price = null;
+}
+// Typed the wrong way round (e.g. 100 to 30)? Swap instead of showing nothing.
+if ($min_price !== null && $max_price !== null && $min_price > $max_price) {
+  [$min_price, $max_price] = [$max_price, $min_price];
 }
 
 // Whitelist: form value => fixed ORDER BY text. auctionId is a tie-breaker so
@@ -43,7 +59,7 @@ $results_per_page = 3;  // deliberately small so pagination is visible with the 
 
 // ---------- 2. Build the WHERE clause from the filters the user set ----------
 $conditions = [];
-$types = '';      // one letter per placeholder: s = string, i = integer
+$types = '';      // one letter per placeholder: s = string, i = integer, d = double (decimal number)
 $params = [];
 
 if ($keyword !== '') {
@@ -69,11 +85,29 @@ if ($category_id !== null) {
   $types .= 'i';
   $params[] = $category_id;
 }
+if ($min_price !== null) {
+  // p = the AuctionCurrentPrice view (one row per auction).
+  $conditions[] = 'p.currentPrice >= ?';
+  $types .= 'd';
+  $params[] = $min_price;
+}
+if ($max_price !== null) {
+  $conditions[] = 'p.currentPrice <= ?';
+  $types .= 'd';
+  $params[] = $max_price;
+}
 $where_sql = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
 
 // ---------- 3. Count matching auctions (for pagination) ----------
+// The count must join every table the WHERE can mention. The price conditions
+// use p.currentPrice, so the view is joined here too ("Unknown column"
+// otherwise). The view has exactly one row per auction, so the join adds no rows.
 $count_stmt = mysqli_prepare($connection,
-  "SELECT COUNT(*) FROM Auctions a JOIN Items i ON a.itemId = i.itemId $where_sql");
+  "SELECT COUNT(*)
+     FROM Auctions a
+     JOIN Items i               ON a.itemId = i.itemId
+     JOIN AuctionCurrentPrice p ON a.auctionId = p.auctionId
+   $where_sql");
 if ($types !== '') {
   mysqli_stmt_bind_param($count_stmt, $types, ...$params);
 }
@@ -166,6 +200,30 @@ function browse_h($value) {
       <button type="submit" class="btn btn-primary">Search</button>
     </div>
   </div>
+  <div class="row">
+    <div class="col-md-5 pr-0">
+      <!-- Price range. type="number" and min="0" stop most bad input in the
+           browser, but anyone can edit the URL, so PHP checks the values again. -->
+      <div class="form-group">
+        <label for="min_price" class="sr-only">Minimum price in pounds:</label>
+        <label for="max_price" class="sr-only">Maximum price in pounds:</label>
+        <div class="input-group">
+          <div class="input-group-prepend">
+            <span class="input-group-text">Price &pound;</span>
+          </div>
+          <input type="number" class="form-control" id="min_price" name="min_price"
+                 min="0" step="0.01" placeholder="Min"
+                 value="<?php echo $min_price === null ? '' : browse_h($min_price); ?>">
+          <div class="input-group-append">
+            <span class="input-group-text">to &pound;</span>
+          </div>
+          <input type="number" class="form-control" id="max_price" name="max_price"
+                 min="0" step="0.01" placeholder="Max"
+                 value="<?php echo $max_price === null ? '' : browse_h($max_price); ?>">
+        </div>
+      </div>
+    </div>
+  </div>
 </form>
 </div> <!-- end search specs bar -->
 
@@ -177,7 +235,7 @@ function browse_h($value) {
   <p class="text-muted"><?php echo (int) $num_results; ?> auction<?php echo $num_results == 1 ? '' : 's'; ?> found</p>
 <?php endif; ?>
 <?php
-  $auction_list_empty_message = 'No auctions match your search. Try a different keyword or category.';
+  $auction_list_empty_message = 'No auctions match your search. Try a different keyword, category or price range.';
   require __DIR__ . '/auction_list.php';
 ?>
 
