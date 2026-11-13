@@ -3,7 +3,8 @@
 <?php
 /*
  * browse.php — Capability 3: buyers search for items being auctioned,
- * filter by category and price range, and re-arrange (sort) the listings.
+ * filter by one or more categories and a price range, and re-arrange (sort)
+ * the listings.
  *
  * Flow: 1) read + validate the URL inputs, 2) build the WHERE clause from the
  * filters actually set, 3) count matches for pagination, 4) fetch one page.
@@ -15,11 +16,30 @@ require_once __DIR__ . '/../sql/database.php';
 // ---------- 1. Read and validate the inputs from the URL (GET) ----------
 $keyword = trim($_GET['keyword'] ?? '');
 
-// 'all' (or anything that is not a positive integer) means no category filter.
-$category_id = filter_var($_GET['cat'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-if ($category_id === false) {
-  $category_id = null;
+// All categories, for the tick boxes (shows the name, sends the id). Read here,
+// before the filters, so ids that are not real categories can be dropped below.
+$categories = mysqli_fetch_all(
+  mysqli_query($connection, 'SELECT categoryId, name FROM Categories ORDER BY name'),
+  MYSQLI_ASSOC
+);
+$known_category_ids = array_map('intval', array_column($categories, 'categoryId'));
+
+// Categories: zero or more ids, sent as cat[]=6&cat[]=12 by the tick boxes.
+// Each must be a real category id; anything else ('all', 'abc', 999) is
+// dropped, like a bad price. An empty list means no category filter.
+// Old single links (cat=12) still work.
+$raw_categories = $_GET['cat'] ?? [];
+if (!is_array($raw_categories)) {
+  $raw_categories = [$raw_categories];
 }
+$category_ids = [];
+foreach ($raw_categories as $raw_category) {
+  $id = filter_var($raw_category, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+  if ($id !== false && in_array($id, $known_category_ids, true)) {
+    $category_ids[] = $id;
+  }
+}
+$category_ids = array_values(array_unique($category_ids));  // the same id twice counts once
 
 // Price range on the CURRENT price (highest bid, else starting price), in £.
 // Both ends are optional and inclusive. Each must be a number >= 0; blank or
@@ -77,13 +97,16 @@ if ($keyword !== '') {
   $params[] = $like;
   $params[] = $like;
 }
-if ($category_id !== null) {
-  // EXISTS keeps the auction if its item has the chosen category, without
-  // joining ItemCategories into the main query (so no duplicate rows).
-  $conditions[] = 'EXISTS (SELECT 1 FROM ItemCategories ic2
-                            WHERE ic2.itemId = i.itemId AND ic2.categoryId = ?)';
-  $types .= 'i';
-  $params[] = $category_id;
+if ($category_ids) {
+  // ANY of the ticked categories (OR). EXISTS keeps the auction if its item has
+  // at least one of them, without joining ItemCategories into the main query,
+  // so an item in two ticked categories still appears once.
+  // One ? per id: only question marks are built into the SQL text, never the ids.
+  $placeholders = implode(', ', array_fill(0, count($category_ids), '?'));
+  $conditions[] = "EXISTS (SELECT 1 FROM ItemCategories ic2
+                            WHERE ic2.itemId = i.itemId AND ic2.categoryId IN ($placeholders))";
+  $types .= str_repeat('i', count($category_ids));
+  array_push($params, ...$category_ids);
 }
 if ($min_price !== null) {
   // p = the AuctionCurrentPrice view (one row per auction).
@@ -142,9 +165,6 @@ mysqli_stmt_bind_param($stmt, $page_types, ...$page_params);
 mysqli_stmt_execute($stmt);
 $results = mysqli_stmt_get_result($stmt);
 
-// Categories for the dropdown (shows the name, sends the id).
-$categories = mysqli_query($connection, 'SELECT categoryId, name FROM Categories ORDER BY name');
-
 // Escape anything printed into HTML (stops stored text being run as code).
 function browse_h($value) {
   return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -177,13 +197,47 @@ function browse_h($value) {
     </div>
     <div class="col-md-3 pr-0">
       <div class="form-group">
-        <label for="cat" class="sr-only">Search within:</label>
-        <select class="form-control" id="cat" name="cat">
-          <option value="all"<?php echo $category_id === null ? ' selected' : ''; ?>>All categories</option>
-<?php while ($category = mysqli_fetch_assoc($categories)): ?>
-          <option value="<?php echo (int) $category['categoryId']; ?>"<?php echo $category_id === (int) $category['categoryId'] ? ' selected' : ''; ?>><?php echo browse_h(category_display_name($category['name'])); ?></option>
-<?php endwhile; ?>
-        </select>
+<?php
+  // Button text: nothing ticked = all; one = its name; more = how many.
+  $ticked_names = [];
+  foreach ($categories as $category) {
+    if (in_array((int) $category['categoryId'], $category_ids, true)) {
+      $ticked_names[] = category_display_name($category['name']);
+    }
+  }
+  if (!$ticked_names) {
+    $category_button_text = 'All categories';
+  } elseif (count($ticked_names) === 1) {
+    $category_button_text = $ticked_names[0];
+  } else {
+    $category_button_text = count($ticked_names) . ' categories';
+  }
+?>
+        <!-- Tick-box dropdown: each ticked box sends cat[]=<id>, so PHP receives
+             a list. Nothing ticked sends nothing, which means all categories. -->
+        <div class="dropdown">
+          <button type="button" class="form-control dropdown-toggle d-flex justify-content-between align-items-center"
+                  id="categoryButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <span class="text-truncate"><span class="sr-only">Categories: </span><?php echo browse_h($category_button_text); ?></span>
+          </button>
+          <div class="dropdown-menu" id="categoryMenu" aria-labelledby="categoryButton"
+               style="min-width: 100%; max-height: 300px; overflow-y: auto;">
+<?php foreach ($categories as $category): ?>
+<?php   $cid = (int) $category['categoryId']; ?>
+            <label class="dropdown-item mb-0">
+              <input type="checkbox" class="mr-2" name="cat[]" value="<?php echo $cid; ?>"<?php echo in_array($cid, $category_ids, true) ? ' checked' : ''; ?>>
+              <?php echo browse_h(category_display_name($category['name'])); ?>
+            </label>
+<?php endforeach; ?>
+          </div>
+        </div>
+        <script>
+          // Bootstrap 4 closes a dropdown on any click. Stop clicks inside the
+          // list from reaching the page, so several boxes can be ticked in one go.
+          document.getElementById('categoryMenu').addEventListener('click', function (event) {
+            event.stopPropagation();
+          });
+        </script>
       </div>
     </div>
     <div class="col-md-3 pr-0">
