@@ -3,8 +3,8 @@
 <?php
 /*
  * browse.php — Capability 3: buyers search for items being auctioned,
- * filter by one or more categories, a price range and whether the item has a
- * photo, and re-arrange (sort) the listings.
+ * filter by one or more categories, a price range, whether the item has a
+ * photo and the auction's status, and re-arrange (sort) the listings.
  *
  * Flow: 1) read + validate the URL inputs, 2) build the WHERE clause from the
  * filters actually set, 3) count matches for pagination, 4) fetch one page.
@@ -60,6 +60,26 @@ if ($min_price !== null && $max_price !== null && $min_price > $max_price) {
 // Has a photo: one tick box. Only the exact value '1' (what the box sends)
 // switches the filter on; anything else, or nothing, means off.
 $has_picture = ($_GET['has_picture'] ?? '') === '1';
+
+// Status tick boxes. Each status maps to a fixed piece of SQL (a whitelist, like
+// the sort). They use MySQL's clock and the same rules as outcomes.php. Nothing
+// ticked, or nothing valid, means the default agreed at the 10 Nov meeting:
+// Live and Scheduled, but not Ended. Old single links (status=ended) still work.
+$status_sql = [
+  'live'      => '(a.startDateTime <= NOW() AND a.endDateTime > NOW())',
+  'scheduled' => 'a.startDateTime > NOW()',
+  'ended'     => 'a.endDateTime <= NOW()',
+];
+$raw_statuses = $_GET['status'] ?? [];
+if (!is_array($raw_statuses)) {
+  $raw_statuses = [$raw_statuses];
+}
+$raw_statuses = array_filter($raw_statuses, 'is_string');  // drop lists inside the list
+// Keep the known names only, once each, in a fixed order.
+$statuses = array_values(array_intersect(array_keys($status_sql), $raw_statuses));
+if (!$statuses) {
+  $statuses = ['live', 'scheduled'];
+}
 
 // Whitelist: form value => fixed ORDER BY text. auctionId is a tie-breaker so
 // the order is deterministic and pagination never repeats or skips a row.
@@ -128,6 +148,17 @@ if ($has_picture) {
   // without joining ItemImages (one row per image would repeat the card).
   // No ? here: the buyer only decides WHETHER this fixed text is added.
   $conditions[] = 'EXISTS (SELECT 1 FROM ItemImages im WHERE im.itemId = i.itemId)';
+}
+if (count($statuses) < count($status_sql)) {
+  // OR between the ticked statuses, inside brackets so they stay together when
+  // ANDed with the other filters (SQL does AND before OR). All three ticked
+  // means every auction, so then no condition is added at all. No ? here: only
+  // fixed text from the whitelist goes into the SQL.
+  $status_parts = [];
+  foreach ($statuses as $status_name) {
+    $status_parts[] = $status_sql[$status_name];
+  }
+  $conditions[] = '(' . implode(' OR ', $status_parts) . ')';
 }
 $where_sql = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
 
@@ -293,6 +324,19 @@ function browse_h($value) {
         <input type="checkbox" class="form-check-input" id="has_picture" name="has_picture" value="1"<?php echo $has_picture ? ' checked' : ''; ?>>
         <label class="form-check-label" for="has_picture">Only items with photos</label>
       </div>
+    </div>
+    <div class="col-md-4">
+      <!-- Status: each ticked box sends status[]=<name>. Nothing ticked falls back
+           to the default (Live + Scheduled). Colours match the badges on the cards. -->
+      <fieldset class="mt-2">
+        <legend class="sr-only">Auction status</legend>
+<?php foreach (['live' => ['Live', 'success'], 'scheduled' => ['Scheduled', 'info'], 'ended' => ['Ended', 'secondary']] as $status_name => [$status_label, $badge_colour]): ?>
+        <div class="form-check form-check-inline">
+          <input type="checkbox" class="form-check-input" id="status_<?php echo $status_name; ?>" name="status[]" value="<?php echo $status_name; ?>"<?php echo in_array($status_name, $statuses, true) ? ' checked' : ''; ?>>
+          <label class="form-check-label" for="status_<?php echo $status_name; ?>"><span class="badge badge-<?php echo $badge_colour; ?>"><?php echo $status_label; ?></span></label>
+        </div>
+<?php endforeach; ?>
+      </fieldset>
     </div>
   </div>
 </form>
