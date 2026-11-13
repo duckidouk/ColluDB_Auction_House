@@ -62,13 +62,17 @@ if ($min_price !== null && $max_price !== null && $min_price > $max_price) {
 $has_picture = ($_GET['has_picture'] ?? '') === '1';
 
 // Status tick boxes. Each status maps to a fixed piece of SQL (a whitelist, like
-// the sort). They use MySQL's clock and the same rules as outcomes.php. Nothing
+// the sort), using MySQL's clock. An auction with a row in Outcomes (sold,
+// unsold, bought now, cancelled, shut down) is closed whatever its end time
+// says, the same rule as place_bid.php: cancelling or shutting down does not
+// move the end time, so the dates alone would still call it Live. Nothing
 // ticked, or nothing valid, means the default agreed at the 10 Nov meeting:
 // Live and Scheduled, but not Ended. Old single links (status=ended) still work.
+$closed_sql = 'EXISTS (SELECT 1 FROM Outcomes o WHERE o.auctionId = a.auctionId)';
 $status_sql = [
-  'live'      => '(a.startDateTime <= NOW() AND a.endDateTime > NOW())',
-  'scheduled' => 'a.startDateTime > NOW()',
-  'ended'     => 'a.endDateTime <= NOW()',
+  'live'      => "(a.startDateTime <= NOW() AND a.endDateTime > NOW() AND NOT $closed_sql)",
+  'scheduled' => "(a.startDateTime > NOW() AND NOT $closed_sql)",
+  'ended'     => "(a.endDateTime <= NOW() OR $closed_sql)",
 ];
 $raw_statuses = $_GET['status'] ?? [];
 if (!is_array($raw_statuses)) {
