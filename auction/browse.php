@@ -3,8 +3,8 @@
 <?php
 /*
  * browse.php — Capability 3: buyers search for items being auctioned,
- * filter by one or more categories and a price range, and re-arrange (sort)
- * the listings.
+ * filter by one or more categories, a price range and whether the item has a
+ * photo, and re-arrange (sort) the listings.
  *
  * Flow: 1) read + validate the URL inputs, 2) build the WHERE clause from the
  * filters actually set, 3) count matches for pagination, 4) fetch one page.
@@ -56,6 +56,10 @@ if ($max_price === false) {
 if ($min_price !== null && $max_price !== null && $min_price > $max_price) {
   [$min_price, $max_price] = [$max_price, $min_price];
 }
+
+// Has a photo: one tick box. Only the exact value '1' (what the box sends)
+// switches the filter on; anything else, or nothing, means off.
+$has_picture = ($_GET['has_picture'] ?? '') === '1';
 
 // Whitelist: form value => fixed ORDER BY text. auctionId is a tie-breaker so
 // the order is deterministic and pagination never repeats or skips a row.
@@ -118,6 +122,12 @@ if ($max_price !== null) {
   $conditions[] = 'p.currentPrice <= ?';
   $types .= 'd';
   $params[] = $max_price;
+}
+if ($has_picture) {
+  // EXISTS keeps the auction if its item has at least one row in ItemImages,
+  // without joining ItemImages (one row per image would repeat the card).
+  // No ? here: the buyer only decides WHETHER this fixed text is added.
+  $conditions[] = 'EXISTS (SELECT 1 FROM ItemImages im WHERE im.itemId = i.itemId)';
 }
 $where_sql = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
 
@@ -277,6 +287,13 @@ function browse_h($value) {
         </div>
       </div>
     </div>
+    <div class="col-md-3">
+      <!-- Has a photo: ticked sends has_picture=1; unticked sends nothing. -->
+      <div class="form-check mt-2 ml-md-3">
+        <input type="checkbox" class="form-check-input" id="has_picture" name="has_picture" value="1"<?php echo $has_picture ? ' checked' : ''; ?>>
+        <label class="form-check-label" for="has_picture">Only items with photos</label>
+      </div>
+    </div>
   </div>
 </form>
 </div> <!-- end search specs bar -->
@@ -289,7 +306,7 @@ function browse_h($value) {
   <p class="text-muted"><?php echo (int) $num_results; ?> auction<?php echo $num_results == 1 ? '' : 's'; ?> found</p>
 <?php endif; ?>
 <?php
-  $auction_list_empty_message = 'No auctions match your search. Try a different keyword, category or price range.';
+  $auction_list_empty_message = 'No auctions match your search. Try a different keyword or fewer filters.';
   require __DIR__ . '/auction_list.php';
 ?>
 
