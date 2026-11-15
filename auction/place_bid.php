@@ -8,6 +8,7 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 // Connect to the MySQL database.
 require_once __DIR__ . '/../sql/database.php';
+require_once __DIR__ . '/outcomes.php';
 
 // Only allow this file to process submitted forms
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -16,18 +17,23 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 
-// Read + validate the auction ID and whole £ bid amount
+// Read the requested action and validate the auction ID.
+$is_buy_now = ($_POST['action'] ?? '') === 'buy_now';
 $auction_id = filter_input(INPUT_POST, 'auction_id', FILTER_VALIDATE_INT);
-$bid_amount = filter_input(INPUT_POST, 'bid_amount', FILTER_VALIDATE_INT);
 
 // if the submitted auction ID is invalid you die
 if ($auction_id === null || $auction_id === false || $auction_id < 1) {
   die('Please provide a valid auction ID.');
 }
 
-// if the submitted bid is not a positive whole amount you die
-if ($bid_amount === null || $bid_amount === false || $bid_amount < 1) {
-  die('Please provide a valid whole-pound bid amount.');
+// An ordinary bid needs a positive whole-pound amount. Buy Now gets its
+// trusted price from the database instead of accepting a price from the form.
+$bid_amount = null;
+if (!$is_buy_now) {
+  $bid_amount = filter_input(INPUT_POST, 'bid_amount', FILTER_VALIDATE_INT);
+  if ($bid_amount === null || $bid_amount === false || $bid_amount < 1) {
+    die('Please provide a valid whole-pound bid amount.');
+  }
 }
 
 $bidder_id = current_user_id();
@@ -49,7 +55,7 @@ try {
     SELECT a.auctionId, a.startingPrice, a.buyNowPrice,
            a.startDateTime, a.endDateTime,
            NOW() AS databaseNow,
-           i.sellerId, o.outcomeId
+           i.sellerId, i.title, o.outcomeId
     FROM Auctions a
       JOIN Items i ON i.itemId = a.itemId
       LEFT JOIN Outcomes o ON o.auctionId = a.auctionId
@@ -134,6 +140,27 @@ try {
       die('This auction is already closed.');
     }
 
+    // Buy Now uses the database price, creates the winning bid and outcome,
+    // notifies the buyer and seller, and closes the auction immediately.
+    if ($is_buy_now) {
+      if ($auction['buyNowPrice'] === null) {
+        mysqli_rollback($connection);
+        die('Buy Now is not available for this auction.');
+      }
+
+      $buy_now_result = execute_buy_now($connection, $auction, $bidder_id);
+      mysqli_commit($connection);
+      $transaction_started = false;
+
+      $_SESSION['auth_message'] = [
+        'type' => 'success',
+        'text' => $buy_now_result['message'],
+      ];
+
+      header('Location: listing.php?auction_id=' . $auction_id);
+      exit();
+    }
+
     // read the latest price after locking the auction
     $price_query = "
       SELECT currentPrice, numBids,
@@ -172,7 +199,12 @@ try {
       $bid_amount >= (float) $auction['buyNowPrice']
     ) {
       mysqli_rollback($connection);
-      die('This amount reaches the Buy Now price. Use the Buy Now option instead.');
+      $transaction_started = false;
+
+      $_SESSION['confirm_buy_now_auction'] = $auction_id;
+
+      header('Location: listing.php?auction_id=' . $auction_id);
+      exit();
     }
 
     // insert the valid bid as a new database row

@@ -19,16 +19,27 @@ require_once __DIR__ . '/../sql/database.php';
   // Describe the auction information we want SQL to retrieve
   $listing_query = "
     SELECT a.auctionId, a.itemId, a.startingPrice,
-           a.startDateTime, a.endDateTime,
+           a.startDateTime, a.endDateTime, a.reservePrice,
+           a.buyNowPrice,
            i.title, i.description, i.sellerId,
            p.currentPrice, p.numBids,
-           a.originalEndDateTime, o.outcomeId, ot.name AS outcomeType
+           a.originalEndDateTime, o.outcomeId, ot.name AS outcomeType,
+           ic.categoryID, c.name as category
     FROM Auctions a
     JOIN Items i ON i.itemId = a.itemId
     JOIN AuctionCurrentPrice p ON p.auctionId = a.auctionId
+    JOIN ItemCategories ic ON ic.itemId = i.itemId
+    JOIN Categories c ON ic.categoryId = c.categoryId
     LEFT JOIN Outcomes o ON o.auctionId = a.auctionId
     LEFT JOIN OutcomeTypes ot ON ot.outcomeTypeId = o.outcomeTypeId
     WHERE a.auctionId = ?
+  ";
+//sql query for images
+  $image_query = "
+    SELECT imageLocation, orderOfImage
+    FROM ItemImages
+    WHERE itemId = ?
+    ORDER BY orderOfImage ASC
   ";
 
   // Prepare the SQL query so values can be added safely :)
@@ -55,6 +66,9 @@ require_once __DIR__ . '/../sql/database.php';
   $description = $listing['description'] ?? '';
   $current_price = (float) $listing['currentPrice'];
   $num_bids = (int) $listing['numBids'];
+  $reserve_price = $listing['reservePrice'];
+  $item_category = category_display_name($listing['category']);
+  $buy_now_price = $listing['buyNowPrice'];
 
   // Calculate the minimum allowed bid.
   if ($num_bids === 0) {
@@ -65,6 +79,41 @@ require_once __DIR__ . '/../sql/database.php';
     $minimum_bid = ceil($current_price * 1.05);
   }
 
+  //Display null if there is no reserve_price
+  if($reserve_price === null) {
+      $reserve_price_display = 'No reserve';
+  } else {
+      $reserve_price = (float)$reserve_price;
+      $reserve_price_display = '£' . number_format($reserve_price, 2);
+  }
+
+  //Display whether the reserve is met or not
+  if ($reserve_price !== null) {
+    if ($num_bids > 0 && $current_price >= $reserve_price) {
+      $reserve_price_met_display = 'Reserve price met';
+    } else {
+      $reserve_price_met_display = 'Reserve price not met';
+    }
+  } else {
+    $reserve_price_met_display = null;
+  }
+
+  // Display Buy Now price and button if available
+  if ($buy_now_price === null) {
+      $buy_now_price_display = 'Buy Now not available';
+  } else {
+      $buy_now_price = (float) $buy_now_price;
+      $buy_now_price_display = '£' . number_format($buy_now_price, 2);
+  }
+
+  // Check whether place_bid.php requested Buy Now confirmation
+  $show_buy_now_confirmation =
+    isset($_SESSION['confirm_buy_now_auction']) &&
+    (int) $_SESSION['confirm_buy_now_auction'] === $auction_id;
+
+  // Make the confirmation appear only once
+  unset($_SESSION['confirm_buy_now_auction']);
+
   $end_time = new DateTime($listing['endDateTime']);
 
   // Describe the bids we want to retrieve for this auction
@@ -74,6 +123,12 @@ require_once __DIR__ . '/../sql/database.php';
     WHERE auctionId = ?
     ORDER BY bidAmount DESC, bidTimestamp ASC, bidId ASC
   ";
+
+  //image php retrieval.
+  $image_statement = mysqli_prepare($connection, $image_query);
+  mysqli_stmt_bind_param($image_statement, 'i', $item_id);
+  mysqli_stmt_execute($image_statement);
+  $image_result = mysqli_stmt_get_result($image_statement);
 
   // Prepare the bid-history query and supply the auction ID
   $bid_history_statement = mysqli_prepare($connection, $bid_history_query);
@@ -95,9 +150,7 @@ require_once __DIR__ . '/../sql/database.php';
     $time_remaining = ' (in ' . display_time_remaining($time_to_end) . ')';
   }
 
-  // TODO: If the user has a session, use it to make a query to the database
-  //       to determine if the user is already watching this item.
-  //       For now, this is hardcoded.
+
   $has_session = true;
   $watching = false;
 
@@ -145,9 +198,35 @@ require_once __DIR__ . '/../sql/database.php';
 <div class="row"> <!-- Row #2 with auction description + bidding info -->
   <div class="col-sm-8"> <!-- Left col with item info -->
 
+<?php if (mysqli_num_rows($image_result) === 0): ?>
+    <p class="text-muted">No images available.</p>
+<?php else: ?>
+    <div class="row mb-3">
+<?php while ($image = mysqli_fetch_assoc($image_result)): ?>
+<?php
+      $image_location = ltrim($image['imageLocation'], '/');
+      $image_source = str_starts_with($image_location, 'public/')
+        ? '../' . $image_location
+        : '../public/' . $image_location;
+?>
+      <div class="col-md-4 mb-3">
+        <img
+          src="<?php echo htmlspecialchars($image_source, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>"
+          class="img-fluid rounded"
+          style="width: 100%; height: 220px; object-fit: cover;"
+          alt="<?php echo htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>"
+        >
+      </div>
+<?php endwhile; ?>
+    </div>
+<?php endif; ?>
+
     <div class="itemDescription">
     <?php echo htmlspecialchars($description, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
     </div>
+    <p class="text-muted mt-2">
+      Category: <?php echo htmlspecialchars($item_category, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+    </p>
 
   </div>
 
@@ -172,8 +251,47 @@ require_once __DIR__ . '/../sql/database.php';
 <?php else: ?>
      Auction ends <?php echo(date_format($end_time, 'j M H:i') . $time_remaining) ?></p>
     <p class="lead">Current bid: £<?php echo(number_format($current_price, 2)) ?></p>
+    <p>
+      Reserve price: <?php echo $reserve_price_display; ?>
+<?php if ($reserve_price_met_display !== null): ?>
+      <small class="text-muted ml-2"><?php echo $reserve_price_met_display; ?></small>
+<?php endif; ?>
+    </p>
 
     <!-- Bidding form -->
+
+
+    <!--buy now alert -->
+    <?php if ($show_buy_now_confirmation): ?>
+      <div class="alert alert-warning">
+        <p>
+          Your bid reached the Buy Now price of
+          <?php echo $buy_now_price_display; ?>.
+          Would you prefer to Buy Now?
+        </p>
+
+        <form method="POST" action="place_bid.php">
+          <input
+            type="hidden"
+            name="auction_id"
+            value="<?php echo (int) $auction_id; ?>"
+          >
+          <input type="hidden" name="action" value="buy_now">
+
+          <button type="submit" class="btn btn-success">
+            Yes, Buy Now
+          </button>
+
+          <a
+            href="listing.php?auction_id=<?php echo (int) $auction_id; ?>"
+            class="btn btn-secondary"
+          >
+            No, continue bidding
+          </a>
+        </form>
+      </div>
+    <?php endif; ?>
+
     <form method="POST" action="place_bid.php">
       <input type="hidden" name="auction_id" value="<?php echo (int) $auction_id; ?>">
 
@@ -198,6 +316,23 @@ require_once __DIR__ . '/../sql/database.php';
 
       <button type="submit" class="btn btn-primary form-control">Place bid</button>
     </form>
+
+<?php if ($viewer_role === 'buyer'): ?>
+<?php if ($buy_now_price !== null): ?>
+    <form method="POST" action="place_bid.php" class="mt-3"
+          onsubmit="return confirm('Are you sure you want to Buy Now for <?php echo $buy_now_price_display; ?>?');">
+      <input type="hidden" name="auction_id" value="<?php echo (int) $auction_id; ?>">
+      <input type="hidden" name="action" value="buy_now">
+      <button type="submit" class="btn btn-success form-control">
+        Buy Now for <?php echo $buy_now_price_display; ?>
+      </button>
+    </form>
+<?php else: ?>
+    <button type="button" class="btn btn-secondary form-control mt-3" disabled>
+      <?php echo $buy_now_price_display; ?>
+    </button>
+<?php endif; ?>
+<?php endif; ?>
 
 <?php if ($can_cancel): /* [OUTCOME CHANGE] seller cancels their own auction */ ?>
     <form method="POST" action="cancel_auction.php" class="mt-3"
