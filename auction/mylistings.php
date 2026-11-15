@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/utilities.php';
+require_once __DIR__ . '/lib/utilities.php';
 $seller_id = current_user_id();
 if ($seller_id === null) {
   header('Location: browse.php');
@@ -14,7 +14,7 @@ include_once __DIR__ . '/header.php';
 
 <?php
   require_once __DIR__ . '/../sql/database.php';
-  require_once __DIR__ . '/auction_queries.php';
+  require_once __DIR__ . '/lib/auction_queries.php';
   $results = fetch_seller_auctions($connection, $seller_id);
 ?>
 

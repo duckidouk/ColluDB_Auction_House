@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/utilities.php';
+require_once __DIR__ . '/lib/utilities.php';
 ensure_session_started();
 $seller_id = current_user_id();
 if ($seller_id === null || ($_SESSION['account_type'] ?? null) !== 'seller') {

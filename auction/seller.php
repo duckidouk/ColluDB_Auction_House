@@ -1,8 +1,8 @@
 <?php
-require_once __DIR__ . '/utilities.php';
+require_once __DIR__ . '/lib/utilities.php';
 require_once __DIR__ . '/../sql/database.php';
-require_once __DIR__ . '/auction_queries.php';
-require_once __DIR__ . '/notification_funcs.php';
+require_once __DIR__ . '/lib/auction_queries.php';
+require_once __DIR__ . '/lib/notification_funcs.php';
 ensure_session_started();
 
 $seller_id = filter_input(INPUT_GET, 'seller_id', FILTER_VALIDATE_INT, [

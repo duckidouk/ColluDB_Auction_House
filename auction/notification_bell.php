@@ -4,7 +4,7 @@
 // Also calls upon unread_count (SQL query for all unread notifications in notification _funcs file).
 // 
  */
-require_once __DIR__ . '/notification_funcs.php';
+require_once __DIR__ . '/lib/notification_funcs.php';
 
 $bell_user = current_user_id();
 if ($bell_user === null) {

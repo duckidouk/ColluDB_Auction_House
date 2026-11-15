@@ -5,7 +5,7 @@
  *   POST all=1        -> mark all read, go back
  *   GET  open=N       -> mark that one read, open its auction (or the notifications page)
  */
-require_once __DIR__ . '/notification_funcs.php';
+require_once __DIR__ . '/lib/notification_funcs.php';
 
 $uid = current_user_id();
 if ($uid === null) {

@@ -1,11 +1,11 @@
 <?php
-  require_once __DIR__ . '/utilities.php';
+  require_once __DIR__ . '/lib/utilities.php';
   ensure_session_started();
   $loggedIn = current_user_id() !== null;
 
   // [OUTCOME/NOTIFICATION CHANGE] database connection + notification functions (used by the bell)
   require_once __DIR__ . '/../sql/database.php';
-  require_once __DIR__ . '/notification_funcs.php';
+  require_once __DIR__ . '/lib/notification_funcs.php';
 ?>
 
 

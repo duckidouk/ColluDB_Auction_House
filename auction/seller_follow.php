@@ -1,8 +1,8 @@
 <?php
-require_once __DIR__ . '/utilities.php';
+require_once __DIR__ . '/lib/utilities.php';
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 require_once __DIR__ . '/../sql/database.php';
-require_once __DIR__ . '/notification_funcs.php';
+require_once __DIR__ . '/lib/notification_funcs.php';
 ensure_session_started();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

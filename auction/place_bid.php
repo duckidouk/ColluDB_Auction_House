@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/utilities.php';
+require_once __DIR__ . '/lib/utilities.php';
 ensure_session_started();
 
 // make database errors throw exceptions that we can catch safely

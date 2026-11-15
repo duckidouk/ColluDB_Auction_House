@@ -4,7 +4,7 @@
  *       User preferences only decide whether an EMAIL is sent as well.
  */
  
-require_once __DIR__ . '/../sql/database.php';  
+require_once __DIR__ . '/../../sql/database.php';
 require_once __DIR__ . '/utilities.php';
 
 // Functions to Call the SQL queries in a more efficient manner (All rows vs First row vs Value vs to execute an INSERT, DELETE, UPDATE query)
