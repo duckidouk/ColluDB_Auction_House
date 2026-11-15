@@ -21,10 +21,13 @@ require_once __DIR__ . '/../sql/database.php';
     SELECT a.auctionId, a.itemId, a.startingPrice,
            a.startDateTime, a.endDateTime,
            i.title, i.description, i.sellerId,
+           seller.firstName AS sellerFirstName,
+           seller.lastName AS sellerLastName,
            p.currentPrice, p.numBids,
            a.originalEndDateTime, o.outcomeId, ot.name AS outcomeType
     FROM Auctions a
     JOIN Items i ON i.itemId = a.itemId
+    JOIN UserAccounts seller ON seller.userId = i.sellerId
     JOIN AuctionCurrentPrice p ON p.auctionId = a.auctionId
     LEFT JOIN Outcomes o ON o.auctionId = a.auctionId
     LEFT JOIN OutcomeTypes ot ON ot.outcomeTypeId = o.outcomeTypeId
@@ -53,6 +56,7 @@ require_once __DIR__ . '/../sql/database.php';
   $item_id = (int) $listing['itemId'];
   $title = $listing['title'];
   $description = $listing['description'] ?? '';
+  $seller_name = trim($listing['sellerFirstName'] . ' ' . $listing['sellerLastName']);
   $current_price = (float) $listing['currentPrice'];
   $num_bids = (int) $listing['numBids'];
 
@@ -148,6 +152,11 @@ require_once __DIR__ . '/../sql/database.php';
     <div class="itemDescription">
     <?php echo htmlspecialchars($description, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
     </div>
+    <p class="mt-3">Seller:
+      <a href="seller.php?seller_id=<?php echo (int) $listing['sellerId']; ?>">
+        <?php echo htmlspecialchars($seller_name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+      </a>
+    </p>
 
   </div>
 
