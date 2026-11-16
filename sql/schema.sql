@@ -173,9 +173,9 @@ CREATE TABLE Outcomes (
 );
 
 -- ---------------------------------------------------------------------
--- Watchlists and favourite sellers
+-- Watched Auctions and favourite sellers
 -- ---------------------------------------------------------------------
-CREATE TABLE WatchLists (
+CREATE TABLE WatchedAuctions (
     auctionId INT UNSIGNED NOT NULL,
     userId    INT UNSIGNED NOT NULL,
     timestamp DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -198,8 +198,8 @@ INSERT INTO Outcomes (outcomeId, auctionId, winningBidId, outcomeTypeId) VALUES
 (5, 10, NULL, 4),
 (6, 11, NULL, 5);
 
--- ---------- Watchlists / favourite sellers ----------
-INSERT INTO WatchLists (auctionId, userId, timestamp) VALUES
+-- ---------- Watched Auctions / favourite sellers ----------
+INSERT INTO WatchedAuctions (auctionId, userId, timestamp) VALUES
 (2, 6, DATE_SUB(NOW(), INTERVAL 45 HOUR)),
 (2, 7, DATE_SUB(NOW(), INTERVAL 35 HOUR)),
 (6, 8, DATE_SUB(NOW(), INTERVAL 4 DAY)),
