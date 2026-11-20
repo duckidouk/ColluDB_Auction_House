@@ -4,7 +4,7 @@ require_once __DIR__ . '/../sql/database.php';
 require_once __DIR__ . '/lib/auction_queries.php';
 require_once __DIR__ . '/lib/notification_funcs.php';
 ensure_session_started();
-validate_authenticated_session($connection);
+require_authenticated_session($connection);
 
 $profile_id = filter_input(INPUT_GET, 'user_id', FILTER_VALIDATE_INT, [
   'options' => ['min_range' => 1],

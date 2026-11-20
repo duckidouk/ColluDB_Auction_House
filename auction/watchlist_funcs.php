@@ -2,7 +2,7 @@
  require_once __DIR__ . '/lib/utilities.php';
  require_once __DIR__ . '/../sql/database.php';
  ensure_session_started();
- validate_authenticated_session($connection);
+ require_authenticated_session($connection);
 
 if (!isset($_POST['functionname']) || !isset($_POST['arguments'])) {
   return;

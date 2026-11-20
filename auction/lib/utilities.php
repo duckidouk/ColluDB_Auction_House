@@ -61,6 +61,14 @@ function validate_authenticated_session(mysqli $connection): void {
   ];
 }
 
+function require_authenticated_session(mysqli $connection): void {
+  validate_authenticated_session($connection);
+  if (current_user_id() === null) {
+    header('Location: login.php');
+    exit();
+  }
+}
+
 function start_authenticated_session(mysqli $connection, int $userId, string $accountType): bool {
   ensure_session_started();
 

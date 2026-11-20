@@ -7,6 +7,11 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 ensure_session_started();
 validate_authenticated_session($connection);
 
+if (current_user_id() !== null) {
+  header('Location: index.php');
+  exit();
+}
+
 function registration_error(string $message): void {
   $_SESSION['auth_message'] = ['type' => 'danger', 'text' => $message];
   header('Location: register.php');
@@ -84,5 +89,5 @@ mysqli_stmt_close($insert);
 $userId = mysqli_insert_id($connection);
 start_authenticated_session($connection, $userId, $accountType);
 $_SESSION['auth_message'] = ['type' => 'success', 'text' => 'Your account has been created and you are now logged in.'];
-header('Location: browse.php');
+header('Location: index.php');
 exit();

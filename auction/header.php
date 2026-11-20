@@ -6,6 +6,16 @@
   require_once __DIR__ . '/../sql/database.php';
   require_once __DIR__ . '/lib/notification_funcs.php';
   validate_authenticated_session($connection);
+  $authPages = ['login.php', 'register.php'];
+  $currentPage = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+  if (in_array($currentPage, $authPages, true)) {
+    if (current_user_id() !== null) {
+      header('Location: index.php');
+      exit();
+    }
+  } else {
+    require_authenticated_session($connection);
+  }
   $loggedIn = current_user_id() !== null;
 ?>
 
@@ -23,7 +33,7 @@
   <!-- Custom CSS file -->
   <link rel="stylesheet" href="css/custom.css">
 
-  <title>[My Auction Site] <!--CHANGEME!--></title>
+  <title>Auction House</title>
 </head>
 
 
@@ -31,25 +41,22 @@
 
 <!-- Navbars -->
 <nav class="navbar navbar-expand-lg navbar-light bg-light mx-2">
-  <a class="navbar-brand" href="#">Site Name <!--CHANGEME!--></a>
+  <a class="navbar-brand" href="index.php">Auction House</a>
   <ul class="navbar-nav ml-auto align-items-center">
 <?php include __DIR__ . '/notification_bell.php'; /* [OUTCOME/NOTIFICATION CHANGE] the bell + floating list */ ?>
     <li class="nav-item">
-    
 <?php
-  // Displays either login or logout on the right, depending on user's
-  // current status (session).
   if ($loggedIn) {
     echo '<a class="nav-link" href="logout.php">Logout</a>';
   }
   else {
-    echo '<button type="button" class="btn nav-link" data-toggle="modal" data-target="#loginModal">Login</button>';
+    echo '<a class="nav-link" href="login.php">Login</a>';
   }
 ?>
-
     </li>
   </ul>
 </nav>
+<?php if ($loggedIn): ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <ul class="navbar-nav align-middle">
 	<li class="nav-item mx-1">
@@ -77,6 +84,7 @@
 ?>
   </ul>
 </nav>
+<?php endif; ?>
 
 <?php
   if (isset($_SESSION['auth_message']) && is_array($_SESSION['auth_message'])) {
@@ -90,33 +98,3 @@
       . '</div></div>';
   }
 ?>
-
-<!-- Login modal -->
-<div class="modal fade" id="loginModal">
-  <div class="modal-dialog">
-    <div class="modal-content">
-
-      <!-- Modal Header -->
-      <div class="modal-header">
-        <h4 class="modal-title">Login</h4>
-      </div>
-
-      <!-- Modal body -->
-      <div class="modal-body">
-        <form method="POST" action="login_result.php">
-          <div class="form-group">
-            <label for="loginEmail">Email</label>
-            <input type="email" class="form-control" id="loginEmail" name="email" placeholder="Email" required>
-          </div>
-          <div class="form-group">
-            <label for="loginPassword">Password</label>
-            <input type="password" class="form-control" id="loginPassword" name="password" placeholder="Password" required>
-          </div>
-          <button type="submit" class="btn btn-primary form-control">Sign in</button>
-        </form>
-        <div class="text-center">or <a href="register.php">create an account</a></div>
-      </div>
-
-    </div>
-  </div>
-</div> <!-- End modal -->

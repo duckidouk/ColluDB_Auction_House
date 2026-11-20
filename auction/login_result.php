@@ -7,8 +7,13 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 ensure_session_started();
 validate_authenticated_session($connection);
 
+if (current_user_id() !== null) {
+  header('Location: index.php');
+  exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  header('Location: browse.php');
+  header('Location: login.php');
   exit();
 }
 
@@ -16,13 +21,13 @@ $email = $_POST['email'] ?? null;
 $password = $_POST['password'] ?? null;
 if (!is_string($email) || !is_string($password)) {
   $_SESSION['auth_message'] = ['type' => 'danger', 'text' => 'Enter your email address and password.'];
-  header('Location: browse.php');
+  header('Location: login.php');
   exit();
 }
 $email = trim($email);
 if ($email === '' || $password === '') {
   $_SESSION['auth_message'] = ['type' => 'danger', 'text' => 'Enter your email address and password.'];
-  header('Location: browse.php');
+  header('Location: login.php');
   exit();
 }
 
@@ -40,16 +45,16 @@ mysqli_stmt_close($query);
 
 if (!$user || !password_verify($password, $user['passwordHash'])) {
   $_SESSION['auth_message'] = ['type' => 'danger', 'text' => 'The email address or password is incorrect.'];
-  header('Location: browse.php');
+  header('Location: login.php');
   exit();
 }
 
 $userId = (int) $user['userId'];
 if (!start_authenticated_session($connection, $userId, $user['accountType'])) {
   $_SESSION['auth_message'] = ['type' => 'danger', 'text' => 'This account is currently banned from signing in.'];
-  header('Location: browse.php');
+  header('Location: login.php');
   exit();
 }
 
-header('Location: browse.php');
+header('Location: index.php');
 exit();

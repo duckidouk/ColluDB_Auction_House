@@ -4,7 +4,7 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 require_once __DIR__ . '/../sql/database.php';
 require_once __DIR__ . '/lib/notification_funcs.php';
 ensure_session_started();
-validate_authenticated_session($connection);
+require_authenticated_session($connection);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   http_response_code(405);

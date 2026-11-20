@@ -8,7 +8,7 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 // Connect to the MySQL database.
 require_once __DIR__ . '/../sql/database.php';
-validate_authenticated_session($connection);
+require_authenticated_session($connection);
 
 // Only allow this file to process submitted forms
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
