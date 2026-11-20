@@ -183,6 +183,7 @@ require_once __DIR__ . '/../sql/database.php';
      Auction ends <?php echo(date_format($end_time, 'j M H:i') . $time_remaining) ?></p>
     <p class="lead">Current bid: £<?php echo(number_format($current_price, 2)) ?></p>
 
+<?php if ($viewer_role === 'buyer'): ?>
     <!-- Bidding form -->
     <form method="POST" action="place_bid.php">
       <input type="hidden" name="auction_id" value="<?php echo (int) $auction_id; ?>">
@@ -208,6 +209,7 @@ require_once __DIR__ . '/../sql/database.php';
 
       <button type="submit" class="btn btn-primary form-control">Place bid</button>
     </form>
+<?php endif; ?>
 
 <?php if ($can_cancel): /* [OUTCOME CHANGE] seller cancels their own auction */ ?>
     <form method="POST" action="cancel_auction.php" class="mt-3"
