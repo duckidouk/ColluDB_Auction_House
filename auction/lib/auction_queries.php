@@ -5,6 +5,7 @@ function fetch_seller_auctions(mysqli $connection, int $sellerId): mysqli_result
     $connection,
     "SELECT a.auctionId, a.startDateTime, a.endDateTime,
             i.title, i.description, p.currentPrice, p.numBids,
+            ot.name AS outcomeType,
             (SELECT GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ', ')
                FROM ItemCategories ic
                JOIN Categories c ON c.categoryId = ic.categoryId
@@ -12,6 +13,8 @@ function fetch_seller_auctions(mysqli $connection, int $sellerId): mysqli_result
        FROM Auctions a
        JOIN Items i ON i.itemId = a.itemId
        JOIN AuctionCurrentPrice p ON p.auctionId = a.auctionId
+       LEFT JOIN Outcomes o ON o.auctionId = a.auctionId
+       LEFT JOIN OutcomeTypes ot ON ot.outcomeTypeId = o.outcomeTypeId
       WHERE i.sellerId = ?
       ORDER BY
         CASE

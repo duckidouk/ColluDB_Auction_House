@@ -11,7 +11,11 @@ while ($row = mysqli_fetch_assoc($results)):
   $startTime = new DateTimeImmutable($row['startDateTime']);
   $endTime = new DateTimeImmutable($row['endDateTime']);
 
-  if ($startTime > $now) {
+  if (($row['outcomeType'] ?? null) === 'ADMIN_SHUT_DOWN') {
+    $status = 'Shut Down by Admin';
+    $statusClass = 'danger';
+    $statusTime = 'Auction shut down by an administrator.';
+  } elseif ($startTime > $now) {
     $status = 'Scheduled';
     $statusClass = 'info';
     $statusTime = 'Starting in ' . display_time_remaining($now->diff($startTime));
