@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="cD4AcpqqK9-huuKcwCq9">
-    <mxGraphModel dx="2415" dy="1337" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="3346" dy="1904" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -644,6 +644,9 @@
         </mxCell>
         <mxCell id="8vTU04gqOiyT592CIPUS-86" parent="8vTU04gqOiyT592CIPUS-83" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;fontSize=8;fontFamily=Verdana;labelBackgroundColor=none;fontColor=#1D3557;" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;imageLocation&lt;/font&gt;" vertex="1">
           <mxGeometry height="20" width="120" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="w2BLi-jQQ1V-6-5PuzS9-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#457B9D;fontColor=#1D3557;labelBackgroundColor=none;fillColor=#A8DADC;" value="Comments" vertex="1">
+          <mxGeometry height="60" width="160" x="920" y="10" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
