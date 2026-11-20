@@ -5,6 +5,7 @@ require_once __DIR__ . '/../sql/database.php';
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 ensure_session_started();
+validate_authenticated_session($connection);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   header('Location: browse.php');
@@ -44,7 +45,11 @@ if (!$user || !password_verify($password, $user['passwordHash'])) {
 }
 
 $userId = (int) $user['userId'];
-start_authenticated_session($connection, $userId, $user['accountType']);
+if (!start_authenticated_session($connection, $userId, $user['accountType'])) {
+  $_SESSION['auth_message'] = ['type' => 'danger', 'text' => 'This account is currently banned from signing in.'];
+  header('Location: browse.php');
+  exit();
+}
 
 header('Location: browse.php');
 exit();

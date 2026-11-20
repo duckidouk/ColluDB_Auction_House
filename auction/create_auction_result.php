@@ -1,13 +1,13 @@
 <?php
 require_once __DIR__ . '/lib/utilities.php';
+require_once __DIR__ . '/../sql/database.php';
 ensure_session_started();
+validate_authenticated_session($connection);
 $seller_id = current_user_id();
 if ($seller_id === null || ($_SESSION['account_type'] ?? null) !== 'seller') {
   header('Location: browse.php');
   exit();
 }
-require_once __DIR__ . '/../sql/database.php';
-
 $errors = [];
 $auction_id = null;
 $item_id = filter_var($_POST['item_id'] ?? null, FILTER_VALIDATE_INT);

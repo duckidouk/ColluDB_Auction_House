@@ -138,6 +138,7 @@ CREATE TABLE Bids (
     bidderId     INT UNSIGNED  NOT NULL,
     bidAmount    DECIMAL(10,2) NOT NULL,
     bidTimestamp DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    isInvalid    BOOLEAN       NOT NULL DEFAULT FALSE,
     KEY idx_bid_bidder (bidderId),
     UNIQUE KEY uq_bid_id_auction (bidId, auctionId),
     CONSTRAINT fk_bid_auction FOREIGN KEY (auctionId) REFERENCES Auctions (auctionId),
@@ -294,5 +295,5 @@ SELECT a.auctionId,
        COALESCE(MAX(b.bidAmount), a.startingPrice) AS currentPrice,
        COUNT(b.bidId)                              AS numBids
 FROM Auctions a
-LEFT JOIN Bids b ON b.auctionId = a.auctionId
+LEFT JOIN Bids b ON b.auctionId = a.auctionId AND b.isInvalid = FALSE
 GROUP BY a.auctionId, a.startingPrice;

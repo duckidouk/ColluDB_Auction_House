@@ -4,6 +4,7 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 require_once __DIR__ . '/../sql/database.php';
 require_once __DIR__ . '/lib/notification_funcs.php';
 ensure_session_started();
+validate_authenticated_session($connection);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   http_response_code(405);
@@ -19,7 +20,7 @@ if ($seller_id === null || $seller_id === false) {
   exit();
 }
 
-$return_to_seller = 'seller.php?seller_id=' . $seller_id;
+$return_to_seller = 'profile.php?user_id=' . $seller_id;
 $csrf_token = $_POST['csrf_token'] ?? null;
 if (
   !is_string($csrf_token)

@@ -6,6 +6,7 @@
  *   GET  open=N       -> mark that one read, open its auction (or the notifications page)
  */
 require_once __DIR__ . '/lib/notification_funcs.php';
+validate_authenticated_session($connection);
 
 $uid = current_user_id();
 if ($uid === null) {

@@ -8,6 +8,7 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 // Connect to the MySQL database.
 require_once __DIR__ . '/../sql/database.php';
+validate_authenticated_session($connection);
 
 // Only allow this file to process submitted forms
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -43,6 +44,38 @@ try {
     mysqli_begin_transaction($connection);
     $transaction_started = true;
 
+    // Lock the buyer first, matching the user-then-auction lock order used by bans.
+    $buyer_query = "
+      SELECT u.userId, r.name AS roleName,
+             EXISTS (
+               SELECT 1
+               FROM UserBans ub
+               WHERE ub.userId = u.userId
+                 AND ub.bannedSince <= NOW()
+                 AND (ub.bannedUntil IS NULL OR ub.bannedUntil > NOW())
+             ) AS isBanned
+      FROM UserAccounts u
+      JOIN Roles r ON r.roleId = u.roleId
+      WHERE u.userId = ?
+      FOR UPDATE
+    ";
+
+    $buyer_statement = mysqli_prepare($connection, $buyer_query);
+    mysqli_stmt_bind_param($buyer_statement, 'i', $bidder_id);
+    mysqli_stmt_execute($buyer_statement);
+    $buyer_result = mysqli_stmt_get_result($buyer_statement);
+    $buyer = mysqli_fetch_assoc($buyer_result);
+
+    if (!$buyer || $buyer['roleName'] !== 'buyer') {
+      mysqli_rollback($connection);
+      die('Only a valid buyer account can place a bid.');
+    }
+
+    if ((int) $buyer['isBanned'] === 1) {
+      mysqli_rollback($connection);
+      die('This buyer account is currently banned from bidding.');
+    }
+
     // retrieve and lock this auction while the bid is being checked
 
     $auction_query = "
@@ -70,40 +103,6 @@ try {
     if (!$auction) {
       mysqli_rollback($connection);
       die('Auction not found.');
-    }
-
-    // Retrieve the demo buyer's account type and active-ban status.
-    $buyer_query = "
-      SELECT u.userId, r.name AS roleName,
-             EXISTS (
-               SELECT 1
-               FROM UserBans ub
-               WHERE ub.userId = u.userId
-                 AND ub.bannedSince <= NOW()
-                 AND (ub.bannedUntil IS NULL OR ub.bannedUntil > NOW())
-             ) AS isBanned
-      FROM UserAccounts u
-      JOIN Roles r ON r.roleId = u.roleId
-      WHERE u.userId = ?
-    ";
-
-    $buyer_statement = mysqli_prepare($connection, $buyer_query);
-    mysqli_stmt_bind_param($buyer_statement, 'i', $bidder_id);
-    mysqli_stmt_execute($buyer_statement);
-
-    $buyer_result = mysqli_stmt_get_result($buyer_statement);
-    $buyer = mysqli_fetch_assoc($buyer_result);
-
-    // II. checks that the buyer exists, checks for buyer role
-    if (!$buyer || $buyer['roleName'] !== 'buyer') {
-      mysqli_rollback($connection);
-      die('Only a valid buyer account can place a bid.');
-    }
-
-    // III. reject a banned user trying to buy
-    if ((int) $buyer['isBanned'] === 1) {
-      mysqli_rollback($connection);
-      die('This buyer account is currently banned from bidding.');
     }
 
     // IV. dies if the seller bids on their own item

@@ -5,6 +5,7 @@ require_once __DIR__ . '/../sql/database.php';
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 ensure_session_started();
+validate_authenticated_session($connection);
 
 function registration_error(string $message): void {
   $_SESSION['auth_message'] = ['type' => 'danger', 'text' => $message];

@@ -73,10 +73,11 @@ require_once __DIR__ . '/../sql/database.php';
 
   // Describe the bids we want to retrieve for this auction
   $bid_history_query = "
-    SELECT bidId, bidderId, bidAmount, bidTimestamp
-    FROM Bids
-    WHERE auctionId = ?
-    ORDER BY bidAmount DESC, bidTimestamp ASC, bidId ASC
+    SELECT b.bidId, b.bidderId, b.bidAmount, b.bidTimestamp, u.firstName, u.lastName
+    FROM Bids b
+    JOIN UserAccounts u ON u.userId = b.bidderId
+    WHERE b.auctionId = ? AND b.isInvalid = FALSE
+    ORDER BY b.bidAmount DESC, b.bidTimestamp ASC, b.bidId ASC
   ";
 
   // Prepare the bid-history query and supply the auction ID
@@ -153,7 +154,7 @@ require_once __DIR__ . '/../sql/database.php';
     <?php echo htmlspecialchars($description, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
     </div>
     <p class="mt-3">Seller:
-      <a href="seller.php?seller_id=<?php echo (int) $listing['sellerId']; ?>">
+      <a href="profile.php?user_id=<?php echo (int) $listing['sellerId']; ?>">
         <?php echo htmlspecialchars($seller_name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
       </a>
     </p>
@@ -248,7 +249,11 @@ require_once __DIR__ . '/../sql/database.php';
       <tbody>
 <?php while ($bid = mysqli_fetch_assoc($bid_history_result)): ?>
         <tr>
-          <td>Bidder <?php echo (int) $bid['bidderId']; ?></td>
+          <td>
+            <a href="profile.php?user_id=<?php echo (int) $bid['bidderId']; ?>">
+              <?php echo htmlspecialchars(trim($bid['firstName'] . ' ' . $bid['lastName']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+            </a>
+          </td>
           <td>£<?php echo number_format((float) $bid['bidAmount'], 2); ?></td>
           <td><?php echo htmlspecialchars($bid['bidTimestamp'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></td>
         </tr>
