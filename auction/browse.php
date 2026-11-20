@@ -110,7 +110,14 @@ if ($curr_page === false) {
 $results_per_page = 3;  // deliberately small so pagination is visible with the seed data (8 auctions); raise (e.g. 10) once there is more data
 
 // ---------- 2. Build the WHERE clause from the filters the user set ----------
-$conditions = [];
+$conditions = [
+  "NOT EXISTS (
+    SELECT 1
+      FROM Outcomes o
+      JOIN OutcomeTypes ot ON ot.outcomeTypeId = o.outcomeTypeId
+     WHERE o.auctionId = a.auctionId AND ot.name = 'ADMIN_SHUT_DOWN'
+  )",
+];
 $types = '';      // one letter per placeholder: s = string, i = integer, d = double (decimal number)
 $params = [];
 

@@ -1,5 +1,8 @@
 <?php
 require_once __DIR__ . '/lib/utilities.php';
+require_once __DIR__ . '/../sql/database.php';
+ensure_session_started();
+require_authenticated_session($connection);
 $seller_id = current_user_id();
 if ($seller_id === null || ($_SESSION['account_type'] ?? null) !== 'seller') {
   header('Location: browse.php');
@@ -11,7 +14,6 @@ include_once __DIR__ . '/header.php';
   <h2 class="my-3">Add an item</h2>
 
 <?php
-  require_once __DIR__ . '/../sql/database.php';
   $categories = mysqli_query($connection, 'SELECT categoryId, name FROM Categories ORDER BY name');
 ?>
   <div class="card">

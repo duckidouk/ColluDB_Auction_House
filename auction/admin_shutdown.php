@@ -1,6 +1,7 @@
 <?php
 /* admin_shutdown.php - receives a POST from a button on listing.php, runs the action, goes back to the listing. */
 require_once __DIR__ . '/outcomes.php';
+require_authenticated_session($connection);
 
 $userId = current_user_id();
 if ($userId === null) {

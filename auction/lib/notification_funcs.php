@@ -86,8 +86,8 @@ function fetch_notifications(mysqli $db, int $userId, int $limit = 50): array {
             wb.bidAmount AS winAmount, wu.firstName AS winFirst, wu.lastName AS winLast,
             nb.bidAmount AS myBid,
             ru.firstName AS relFirst, ru.lastName AS relLast,
-            (SELECT COUNT(*)       FROM Bids b WHERE b.auctionId = n.auctionId) AS bidCount,
-            (SELECT MAX(bidAmount) FROM Bids b WHERE b.auctionId = n.auctionId) AS topBid
+            (SELECT COUNT(*)       FROM Bids b WHERE b.auctionId = n.auctionId AND b.isInvalid = FALSE) AS bidCount,
+            (SELECT MAX(bidAmount) FROM Bids b WHERE b.auctionId = n.auctionId AND b.isInvalid = FALSE) AS topBid
        FROM Notifications n
        JOIN NotificationTypes nt  ON nt.notificationTypeId = n.notificationTypeId
        LEFT JOIN Auctions a       ON a.auctionId = n.auctionId

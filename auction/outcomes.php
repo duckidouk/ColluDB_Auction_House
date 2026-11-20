@@ -94,7 +94,7 @@ function close_ended_auctions(mysqli $db): int {
          FROM Auctions a
          JOIN (SELECT bidId, auctionId, bidAmount,
                       ROW_NUMBER() OVER (PARTITION BY auctionId ORDER BY bidAmount DESC, bidTimestamp ASC, bidId ASC) AS rownumber
-                 FROM Bids) b ON b.auctionId = a.auctionId AND b.rownumber = 1
+                 FROM Bids WHERE isInvalid = FALSE) b ON b.auctionId = a.auctionId AND b.rownumber = 1
         WHERE a.endDateTime <= NOW()
           AND (a.reservePrice IS NULL OR b.bidAmount >= a.reservePrice)
           AND NOT EXISTS (SELECT 1 FROM Outcomes o WHERE o.auctionId = a.auctionId)");
@@ -137,7 +137,7 @@ function close_ended_auctions(mysqli $db): int {
 }
 
 function top_bid(mysqli $db, int $auctionId): ?array {
-  return db_row($db, 'SELECT bidId, bidderId, bidAmount FROM Bids WHERE auctionId = ?
+  return db_row($db, 'SELECT bidId, bidderId, bidAmount FROM Bids WHERE auctionId = ? AND isInvalid = FALSE
                        ORDER BY bidAmount DESC, bidTimestamp ASC, bidId ASC LIMIT 1', [$auctionId]);
 }
 
@@ -197,18 +197,31 @@ function cancel_auction_by_seller(mysqli $db, int $auctionId, int $sellerId): ar
 }
 
 
-// ADMIN SHUTS IT DOWN ANY AUCTION (Outcome = 5)
+// ADMIN SHUTS IT DOWN ANY AUCTION (Outcome = 5). The in-transaction variant
+// also lets a user ban shut down several auctions atomically with the ban.
+function admin_shut_down_auction_in_transaction(mysqli $db, int $auctionId, int $adminId): array {
+  if (user_role($db, $adminId) !== 'admin') return ['ok' => false, 'message' => 'Administrators only.'];
+  $a = lock_auction($db, $auctionId);
+  if (!$a)                             return ['ok' => false, 'message' => 'Auction not found.'];
+  if (outcome_exists($db, $auctionId)) return ['ok' => false, 'message' => 'This auction is already closed.'];
+
+  record_outcome($db, $a, OUT_ADMIN, null);
+  close_early($db, $auctionId);
+  return ['ok' => true, 'message' => 'Auction shut down. Seller and bidders have been notified.'];
+}
+
 function admin_shut_down_auction(mysqli $db, int $auctionId, int $adminId): array {
   $db->begin_transaction();
   try {
-    if (user_role($db, $adminId) !== 'admin') return fail($db, 'Administrators only.');
-    $a = lock_auction($db, $auctionId);
-    if (!$a)                                  return fail($db, 'Auction not found.');
-    if (outcome_exists($db, $auctionId))      return fail($db, 'This auction is already closed.');
-
-    record_outcome($db, $a, OUT_ADMIN, null);
-    close_early($db, $auctionId);
+    $result = admin_shut_down_auction_in_transaction($db, $auctionId, $adminId);
+    if (!$result['ok']) {
+      $db->rollback();
+      return $result;
+    }
     $db->commit();
-    return ['ok' => true, 'message' => 'Auction shut down. Seller and bidders have been notified.'];
-  } catch (Throwable $e) { $db->rollback(); throw $e; }
+    return $result;
+  } catch (Throwable $e) {
+    $db->rollback();
+    throw $e;
+  }
 }

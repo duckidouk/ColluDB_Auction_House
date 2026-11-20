@@ -1,13 +1,13 @@
 <?php
 require_once __DIR__ . '/lib/utilities.php';
+require_once __DIR__ . '/../sql/database.php';
 ensure_session_started();
+require_authenticated_session($connection);
 $seller_id = current_user_id();
 if ($seller_id === null || ($_SESSION['account_type'] ?? null) !== 'seller') {
   header('Location: browse.php');
   exit();
 }
-require_once __DIR__ . '/../sql/database.php';
-
 $errors = [];
 $item_id = null;
 $saved_image_paths = [];
